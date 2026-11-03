@@ -1,0 +1,37 @@
+[
+  {
+    "rubric_id": "apertura-e-mercati",
+    "name": "Apertura e mercati",
+    "aliases": []
+  },
+  {
+    "rubric_id": "chiediamolo-all-ai",
+    "name": "Chiediamolo all’AI",
+    "aliases": []
+  },
+  {
+    "rubric_id": "grafico-del-giorno",
+    "name": "Grafico del giorno",
+    "aliases": []
+  },
+  {
+    "rubric_id": "la-voce-dell-agora",
+    "name": "La Voce dell’Agorà",
+    "aliases": []
+  },
+  {
+    "rubric_id": "spazio-alle-grida",
+    "name": "Spazio alle grida",
+    "aliases": []
+  },
+  {
+    "rubric_id": "twbook-time",
+    "name": "TWbook Time",
+    "aliases": []
+  },
+  {
+    "rubric_id": "uno-strumento-al-giorno",
+    "name": "Uno strumento al giorno",
+    "aliases": []
+  }
+]

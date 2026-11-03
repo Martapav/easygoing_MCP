@@ -1,0 +1,433 @@
+[
+  {
+    "instrument_id": "alibaba",
+    "name": "Alibaba",
+    "aliases": [],
+    "tickers": [
+      "BABA"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "alphabet-google",
+    "name": "Alphabet / Google",
+    "aliases": [],
+    "tickers": [
+      "GOOGL",
+      "GOOG"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "american-express",
+    "name": "American Express",
+    "aliases": [],
+    "tickers": [
+      "AXP"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "apple",
+    "name": "Apple",
+    "aliases": [],
+    "tickers": [
+      "AAPL"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "argento",
+    "name": "Argento",
+    "aliases": [],
+    "tickers": [],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "autozone",
+    "name": "AutoZone",
+    "aliases": [],
+    "tickers": [
+      "AZO"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "avio",
+    "name": "Avio",
+    "aliases": [],
+    "tickers": [
+      "AVIO"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "banco-bpm",
+    "name": "Banco BPM",
+    "aliases": [],
+    "tickers": [
+      "BAMI"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "barclays",
+    "name": "Barclays",
+    "aliases": [],
+    "tickers": [
+      "BARC"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "bbva",
+    "name": "BBVA",
+    "aliases": [],
+    "tickers": [
+      "BBVA"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "bitcoin",
+    "name": "Bitcoin",
+    "aliases": [],
+    "tickers": [
+      "BTC"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "bnp-paribas",
+    "name": "BNP Paribas",
+    "aliases": [],
+    "tickers": [
+      "BNP"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "boeing",
+    "name": "Boeing",
+    "aliases": [],
+    "tickers": [
+      "BA"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "booking-holdings",
+    "name": "Booking Holdings",
+    "aliases": [],
+    "tickers": [
+      "BKNG"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "brunello-cucinelli",
+    "name": "Brunello Cucinelli",
+    "aliases": [],
+    "tickers": [
+      "BC"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "btp-future-btp",
+    "name": "BTP / Future BTP",
+    "aliases": [],
+    "tickers": [],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "buzzi",
+    "name": "Buzzi",
+    "aliases": [],
+    "tickers": [
+      "BZU"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "campari",
+    "name": "Campari",
+    "aliases": [],
+    "tickers": [
+      "CPR"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "dell-technologies",
+    "name": "Dell Technologies",
+    "aliases": [],
+    "tickers": [
+      "DELL"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "deutsche-bank",
+    "name": "Deutsche Bank",
+    "aliases": [],
+    "tickers": [
+      "DBK"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "essilorluxottica",
+    "name": "EssilorLuxottica",
+    "aliases": [],
+    "tickers": [
+      "EL"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "euro-dollaro",
+    "name": "Euro/Dollaro",
+    "aliases": [],
+    "tickers": [
+      "EURUSD"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "f5",
+    "name": "F5",
+    "aliases": [],
+    "tickers": [
+      "FFIV"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "italgas",
+    "name": "Italgas",
+    "aliases": [],
+    "tickers": [
+      "IG"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "jpmorgan-chase",
+    "name": "JPMorgan Chase",
+    "aliases": [],
+    "tickers": [
+      "JPM"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "l-oreal",
+    "name": "L'Oréal",
+    "aliases": [],
+    "tickers": [
+      "OR"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "leonardo",
+    "name": "Leonardo",
+    "aliases": [],
+    "tickers": [
+      "LDO"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "mib",
+    "name": "MIB",
+    "aliases": [],
+    "tickers": [],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "micron-technology",
+    "name": "Micron Technology",
+    "aliases": [],
+    "tickers": [
+      "MU"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "microsoft",
+    "name": "Microsoft",
+    "aliases": [],
+    "tickers": [
+      "MSFT"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "nasdaq",
+    "name": "Nasdaq",
+    "aliases": [],
+    "tickers": [],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "oracle",
+    "name": "Oracle",
+    "aliases": [],
+    "tickers": [
+      "ORCL"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "oro",
+    "name": "Oro",
+    "aliases": [],
+    "tickers": [],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "petrolio-brent",
+    "name": "Petrolio Brent",
+    "aliases": [],
+    "tickers": [],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "prysmian",
+    "name": "Prysmian",
+    "aliases": [],
+    "tickers": [
+      "PRY"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "rame",
+    "name": "Rame",
+    "aliases": [],
+    "tickers": [],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "s-p-500",
+    "name": "S&P 500",
+    "aliases": [],
+    "tickers": [],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "saipem",
+    "name": "Saipem",
+    "aliases": [],
+    "tickers": [
+      "SPM"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "samsung-electronics",
+    "name": "Samsung Electronics",
+    "aliases": [],
+    "tickers": [
+      "005930 (KRX)"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "sk-hynix",
+    "name": "SK hynix",
+    "aliases": [],
+    "tickers": [
+      "000660 (KRX)"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "snam",
+    "name": "Snam",
+    "aliases": [],
+    "tickers": [
+      "SRG"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "star-50",
+    "name": "STAR 50",
+    "aliases": [],
+    "tickers": [],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "stellantis",
+    "name": "Stellantis",
+    "aliases": [],
+    "tickers": [
+      "STLAM"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "stmicroelectronics",
+    "name": "STMicroelectronics",
+    "aliases": [],
+    "tickers": [
+      "STM"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "technoprobe",
+    "name": "Technoprobe",
+    "aliases": [],
+    "tickers": [
+      "TPRO"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "telecom-italia-tim",
+    "name": "Telecom Italia / TIM",
+    "aliases": [],
+    "tickers": [
+      "TIT"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "tlt-etf-treasury-usa",
+    "name": "TLT ETF Treasury USA",
+    "aliases": [],
+    "tickers": [
+      "TLT"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "vertiv",
+    "name": "Vertiv",
+    "aliases": [],
+    "tickers": [
+      "VRT"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "visa",
+    "name": "Visa",
+    "aliases": [],
+    "tickers": [
+      "V"
+    ],
+    "asset_class": null
+  },
+  {
+    "instrument_id": "wti",
+    "name": "WTI",
+    "aliases": [],
+    "tickers": [],
+    "asset_class": null
+  }
+]

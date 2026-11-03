@@ -1,0 +1,52 @@
+{
+  "schema": "easygoing.market_briefing.transcript_test.v1",
+  "data": "2026-10-29",
+  "titolo": "FIXTURE LIVE",
+  "programma": "Market Briefing",
+  "origine": "fixture",
+  "registrazione_durata_dichiarata_minuti": 45,
+  "prima_voce_pubblica_rec": "00:00:10",
+  "ultima_voce_disponibile_rec": "00:45:00",
+  "contenuto_incompleto": true,
+  "tempo_youtube_segmenti": "stimato, non certificato",
+  "limiti": ["solo fonte TXT, audio non disponibile", "numeri non verificati"],
+  "speaker_ufficiali": ["Ada Lovelace", "Grace Hopper"],
+  "capitoli_ufficiali": [
+    {"nome": "Apertura e mercati", "timestamp_youtube_ufficiale": "00:00",
+     "timestamp_registrazione_inizio_approssimato": "00:00:10", "tema": "Apertura"},
+    {"nome": "Chiediamolo all'AI", "timestamp_youtube_ufficiale": "25:02 [da verificare]",
+     "timestamp_registrazione_inizio_approssimato": "00:30:00", "tema": "AI"},
+    {"nome": "Ada Lovelace", "timestamp_youtube_ufficiale": "40:00",
+     "timestamp_registrazione_inizio_approssimato": "00:45:00", "tema": "Rates"}
+  ],
+  "titoli_e_strumenti": [
+    {"nome": "Alphabet / Google", "ticker": "GOOGL/GOOG", "occorrenze_segmenti": 1,
+     "speaker": {"Ada Lovelace": 1}, "prima_occorrenza_rec": "00:00:10",
+     "prima_occorrenza_youtube_stimata": "00:00:00", "segmenti_ids": [0]},
+    {"nome": "Oro", "ticker": null, "occorrenze_segmenti": 1,
+     "speaker": {"Grace Hopper": 1}, "prima_occorrenza_rec": "00:30:00",
+     "prima_occorrenza_youtube_stimata": "00:25:02", "segmenti_ids": [2]}
+  ],
+  "segmenti": [
+    {"id": 0, "time_recording": "00:00:10", "time_recording_seconds": 10,
+     "time_youtube_estimated": "00:00:00", "time_youtube_estimated_seconds": 0,
+     "speaker": "Ada Lovelace", "speaker_originale": "SPEAKER_00",
+     "speaker_confidence": "alta", "requires_audio_check": false,
+     "rubrica": "Apertura e mercati", "testo": "Alphabet sale."},
+    {"id": 1, "time_recording": "00:30:00", "time_recording_seconds": 1800,
+     "time_youtube_estimated": "00:25:02", "time_youtube_estimated_seconds": 1502,
+     "speaker": "Ada Lovelace", "speaker_originale": "SPEAKER_00",
+     "speaker_confidence": "media", "requires_audio_check": false,
+     "rubrica": "Apertura e mercati", "testo": "Ancora sull'apertura."},
+    {"id": 2, "time_recording": "00:30:00", "time_recording_seconds": 1800,
+     "time_youtube_estimated": "00:25:02", "time_youtube_estimated_seconds": 1502,
+     "speaker": "Grace Hopper", "speaker_originale": "SPEAKER_01",
+     "speaker_confidence": "media", "requires_audio_check": true,
+     "rubrica": "Chiediamolo all'AI", "testo": "L'oro resta forte."},
+    {"id": 3, "time_recording": "00:45:00", "time_recording_seconds": 2700,
+     "time_youtube_estimated": "00:40:00", "time_youtube_estimated_seconds": 2400,
+     "speaker": "Ada Lovelace", "speaker_originale": "SPEAKER_00",
+     "speaker_confidence": "alta", "requires_audio_check": false,
+     "rubrica": "Ada Lovelace", "testo": "Chiudo qui, ma"}
+  ]
+}

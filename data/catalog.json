@@ -1,0 +1,2566 @@
+{
+  "schema_version": "1.1",
+  "ingest_schema_version": "1.0",
+  "catalog_version": 2,
+  "updated": "2026-11-02",
+  "next_id": 23,
+  "lives_processed": [
+    {
+      "live_id": "MB20261028",
+      "date": "2026-10-28",
+      "duration_seconds": 5941,
+      "source_file": "Market_Briefing_2026-10-28_MCP_TEST.json",
+      "processed_on": "2026-10-29",
+      "schema_issues": [
+        "Re-ingested into canonical format in catalog v2; structured anomalies are in the canonical file.",
+        "No live_id, title or date fields; date parsed from metadata.source free text; programme from file name. The v1 title 'Market Briefing' was the programme name and has been removed.",
+        "File name does not follow live_YYYY-MM-DD_<id>.json and carries a TEST suffix.",
+        "Timestamps are strings without numeric seconds and without end times; end_s derived from the next segment start; 25 zero-duration segments.",
+        "v1 check omitted fields present in the source: timestamp_original (recording time, constant 225 s offset), timecode_kind, source_line, per-segment confidence and speaker_correction.",
+        "Speakers context-inferred, pre-correction labels not preserved; 72 segments flagged review_audio; some segments contain two speakers.",
+        "Source mention index covers single equities only.",
+        "Some spoken numbers ASR-garbled; source states figures are not fact-checked; off-air portion removed."
+      ],
+      "source_format": "mb_mymeeting_en_v0",
+      "canonical_file": "MB20261028.canonical.json"
+    },
+    {
+      "live_id": "MB20261029",
+      "title": "E POI VENNE LA FED...",
+      "date": "2026-10-29",
+      "source_file": "Market_Briefing_2026-10-29_MCP_TEST.json",
+      "processed_on": "2026-11-02",
+      "source_format": "mb_mymeeting_it_v1",
+      "canonical_file": "MB20261029.canonical.json",
+      "schema_issues": [
+        "Different source format from MB20261028 (Italian keys, schema label easygoing.market_briefing.transcript_test.v1); handled by a separate adapter.",
+        "No live_id and no video URL; deep links cannot be built.",
+        "Segment broadcast times estimated by interpolation between chapter anchors; recording offset drifts from 282 to 516 s; 31 zero-duration segments.",
+        "Published chapter time for Chiediamolo all'AI (25:02) conflicts with the transcript by about 298 s.",
+        "136 of 241 segments reattributed from the diarization label; confidence scale has only alta and media; 52 segments require audio check without audio available.",
+        "Source ends mid-sentence inside the last guest block; duration_seconds omitted because the broadcast end is unknown.",
+        "Per-segment rubric field mixes rubric names and guest names; 19 segments disagree with time-based chapter assignment.",
+        "Mention index is multi-asset but segment-level only; 13 entries without ticker.",
+        "Spoken numbers not verified; several levels ASR-garbled."
+      ]
+    }
+  ],
+  "entries": [
+    {
+      "id": "REQ-0001",
+      "status": "active",
+      "canonical_formulation": "Give an overall summary of a given live, with every opinion attributed to its speaker.",
+      "example_phrasings_it": [
+        "Riassumimi la live di ieri.",
+        "Di cosa si è parlato nel Market Briefing del 28 ottobre?",
+        "Fammi un sunto della diretta di oggi."
+      ],
+      "scope": "single_live",
+      "intent": "summary",
+      "focus": [
+        "live"
+      ],
+      "parameters": [
+        {
+          "name": "live_id",
+          "type": "string",
+          "required": true,
+          "description": "Identifier of the live."
+        }
+      ],
+      "mcp": {
+        "primitive": "resource_template",
+        "uri_template": "easygoing://lives/{live_id}/summary",
+        "justification": "A whole-live summary is one artifact per live that can be generated once at ingestion and compliance-reviewed, instead of being regenerated on every request."
+      },
+      "data_requirements": {
+        "transcript_fields": [
+          "segments[].segment_id",
+          "segments[].start_s",
+          "segments[].end_s",
+          "segments[].start_quality",
+          "segments[].speaker.speaker_id",
+          "segments[].text",
+          "segments[].speaker.confidence",
+          "segments[].speaker.needs_audio_review",
+          "segments[].mixed_speakers",
+          "chapters[]",
+          "coverage.content_end_s",
+          "coverage.truncated",
+          "anomalies[]"
+        ],
+        "external": [
+          "derived: per-live summary generated and compliance-reviewed at ingestion",
+          "registry: speakers"
+        ]
+      },
+      "evidence": [
+        {
+          "live_id": "MB20261028",
+          "segments": [
+            {
+              "start_s": 0,
+              "end_s": 5941
+            }
+          ],
+          "note": "Whole-live request; the live is a sequence of guest blocks dense with attributed views and price levels."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 0,
+              "end_s": 5481
+            }
+          ],
+          "note": "Whole live; source truncated before the closing, so a summary covers only the available content."
+        }
+      ],
+      "confidence": "grounded",
+      "advice_risk": true,
+      "notes": "Flagged because a faithful summary reproduces speakers' price levels and directional views (MB20261028 ~1:14:04; MB20261029 Serafini block). Needs a policy on whether summaries keep, generalize or drop levels. When coverage.truncated is true (MB20261029) the summary must state that the end of the live is missing.",
+      "created_in": 1,
+      "last_modified_in": 2
+    },
+    {
+      "id": "REQ-0002",
+      "status": "active",
+      "canonical_formulation": "List the chapters of a given live with start times, segment type and speaker.",
+      "example_phrasings_it": [
+        "Quali sono le rubriche della live di oggi e a che minuto iniziano?",
+        "Chi c'era ospite nella diretta del 28 ottobre?",
+        "Mostrami la scaletta della live."
+      ],
+      "scope": "single_live",
+      "intent": "navigation",
+      "focus": [
+        "live",
+        "speaker"
+      ],
+      "parameters": [
+        {
+          "name": "live_id",
+          "type": "string",
+          "required": true,
+          "description": "Identifier of the live."
+        }
+      ],
+      "mcp": {
+        "primitive": "resource_template",
+        "uri_template": "easygoing://lives/{live_id}/chapters",
+        "justification": "The chapter list is static per-live data read directly from metadata, with no computation."
+      },
+      "data_requirements": {
+        "transcript_fields": [
+          "chapters[].chapter_id",
+          "chapters[].start_s",
+          "chapters[].start_quality",
+          "chapters[].rubric_id",
+          "chapters[].speaker_ids",
+          "chapters[].topics_raw",
+          "live.video_url"
+        ],
+        "external": [
+          "registry: rubrics",
+          "registry: speakers"
+        ]
+      },
+      "evidence": [
+        {
+          "live_id": "MB20261028",
+          "segments": [
+            {
+              "start_s": 640,
+              "end_s": 731
+            },
+            {
+              "start_s": 1496,
+              "end_s": 1651
+            },
+            {
+              "start_s": 2335,
+              "end_s": 2530
+            },
+            {
+              "start_s": 3810,
+              "end_s": 3891
+            },
+            {
+              "start_s": 4744,
+              "end_s": 4880
+            }
+          ],
+          "note": "Host explicitly announces rubrics (Grafico del giorno, Chiediamolo all'AI, Voce dell'Agorà, Spazio alle grida, TWbook Time, Speciale 0DTE)."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 707,
+              "end_s": 741
+            },
+            {
+              "start_s": 910,
+              "end_s": 922
+            },
+            {
+              "start_s": 1800,
+              "end_s": 1830
+            },
+            {
+              "start_s": 1904,
+              "end_s": 1904
+            },
+            {
+              "start_s": 2605,
+              "end_s": 2654
+            },
+            {
+              "start_s": 2828,
+              "end_s": 2828
+            },
+            {
+              "start_s": 3461,
+              "end_s": 3547
+            },
+            {
+              "start_s": 4103,
+              "end_s": 4103
+            },
+            {
+              "start_s": 4783,
+              "end_s": 4851
+            }
+          ],
+          "note": "Host announces each rubric and guest (Grafico del giorno, Chiediamolo all'AI, La Voce dell'Agorà, Spazio alle grida, Uno strumento al giorno, TWbook Time, lo speciale)."
+        }
+      ],
+      "confidence": "grounded",
+      "advice_risk": false,
+      "notes": "Chapter parsing into rubric and speakers now happens at ingestion against the registries. Rubric and guest are often separate chapters for the same block (Spazio alle grida + Cartisano in MB20261029). One published chapter time is wrong by about 5 minutes (MB20261029-C04); chapters can lead their first segment by 6-30 s.",
+      "created_in": 1,
+      "last_modified_in": 2
+    },
+    {
+      "id": "REQ-0003",
+      "status": "active",
+      "canonical_formulation": "List the instruments discussed in a given live, with the speakers who discussed each and the first mention.",
+      "example_phrasings_it": [
+        "Quali titoli sono stati analizzati nella live di oggi?",
+        "Di quali azioni ha parlato la diretta del 28 ottobre?"
+      ],
+      "scope": "single_live",
+      "intent": "lookup",
+      "focus": [
+        "instrument",
+        "live"
+      ],
+      "parameters": [
+        {
+          "name": "live_id",
+          "type": "string",
+          "required": true,
+          "description": "Identifier of the live."
+        }
+      ],
+      "mcp": {
+        "primitive": "resource_template",
+        "uri_template": "easygoing://lives/{live_id}/instruments",
+        "justification": "The transcript already ships a per-live securities index, so this is a direct read of static data."
+      },
+      "data_requirements": {
+        "transcript_fields": [
+          "mentions[].instrument_id",
+          "mentions[].segment_id",
+          "segments[].start_s",
+          "segments[].speaker.speaker_id",
+          "coverage.mention_index_scope"
+        ],
+        "external": [
+          "registry: instruments",
+          "derived: uniform mention extraction across lives"
+        ]
+      },
+      "evidence": [
+        {
+          "live_id": "MB20261028",
+          "segments": [
+            {
+              "start_s": 1675,
+              "end_s": 2334
+            },
+            {
+              "start_s": 2335,
+              "end_s": 2530
+            },
+            {
+              "start_s": 3810,
+              "end_s": 4035
+            }
+          ],
+          "note": "Multi-stock passes by Di Fazio, the Voce dell'Agorà poll and Spazio alle grida."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 960,
+              "end_s": 1497
+            },
+            {
+              "start_s": 2605,
+              "end_s": 2828
+            },
+            {
+              "start_s": 3461,
+              "end_s": 3547
+            },
+            {
+              "start_s": 3820,
+              "end_s": 4058
+            }
+          ],
+          "note": "Serafini's US stock pass, Voce dell'Agorà poll (Stellantis, Deutsche Bank, Oracle), Spazio alle grida and Cartisano on Campari, Prysmian, STM."
+        }
+      ],
+      "confidence": "grounded",
+      "advice_risk": false,
+      "notes": "Completeness depends on coverage.mention_index_scope: equities_only for MB20261028, multi_asset for MB20261029. The same request returns different classes of instruments per live until mentions come from a uniform extraction rather than from the source index.",
+      "created_in": 1,
+      "last_modified_in": 2
+    },
+    {
+      "id": "REQ-0004",
+      "status": "active",
+      "canonical_formulation": "Summarize a portion of a given live selected by chapter, speaker or time range.",
+      "example_phrasings_it": [
+        "Riassumi l'intervento di Michettoni di oggi.",
+        "Cosa è stato detto nello Speciale 0DTE?",
+        "Fammi un riassunto dal minuto 40 al minuto 55."
+      ],
+      "scope": "single_live",
+      "intent": "summary",
+      "focus": [
+        "live",
+        "speaker"
+      ],
+      "parameters": [
+        {
+          "name": "live_id",
+          "type": "string",
+          "required": true,
+          "description": "Identifier of the live."
+        },
+        {
+          "name": "chapter",
+          "type": "string",
+          "required": false,
+          "description": "Chapter label or rubric name."
+        },
+        {
+          "name": "speaker",
+          "type": "string",
+          "required": false,
+          "description": "Speaker identifier."
+        },
+        {
+          "name": "start_s",
+          "type": "number",
+          "required": false,
+          "description": "Start of the time window, seconds from broadcast start."
+        },
+        {
+          "name": "end_s",
+          "type": "number",
+          "required": false,
+          "description": "End of the time window, seconds from broadcast start."
+        }
+      ],
+      "mcp": {
+        "primitive": "prompt",
+        "prompt_name": "summarize_live_portion",
+        "justification": "Selector combinations are unbounded so nothing can be precomputed; a server-side prompt embeds the selected segments together with fixed attribution and disclaimer instructions."
+      },
+      "data_requirements": {
+        "transcript_fields": [
+          "segments[].segment_id",
+          "segments[].start_s",
+          "segments[].end_s",
+          "segments[].start_quality",
+          "segments[].speaker.speaker_id",
+          "segments[].text",
+          "segments[].speaker.confidence",
+          "segments[].speaker.needs_audio_review",
+          "segments[].mixed_speakers",
+          "segments[].chapter_id",
+          "chapters[].chapter_id",
+          "chapters[].rubric_id",
+          "chapters[].speaker_ids",
+          "coverage.truncated"
+        ],
+        "external": [
+          "registry: speakers",
+          "registry: rubrics"
+        ]
+      },
+      "evidence": [
+        {
+          "live_id": "MB20261028",
+          "segments": [
+            {
+              "start_s": 773,
+              "end_s": 1496
+            },
+            {
+              "start_s": 2591,
+              "end_s": 3262
+            },
+            {
+              "start_s": 4833,
+              "end_s": 5729
+            }
+          ],
+          "note": "Self-contained guest blocks (Sartorelli on volatility, Michettoni on swaps, Gaudioso on 0DTE)."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 960,
+              "end_s": 1497
+            },
+            {
+              "start_s": 2891,
+              "end_s": 3395
+            },
+            {
+              "start_s": 4881,
+              "end_s": 5368
+            }
+          ],
+          "note": "Self-contained guest blocks (Serafini on options, Rea on institutional positioning, Casarella on investment costs)."
+        }
+      ],
+      "confidence": "grounded",
+      "advice_risk": true,
+      "notes": "Selection by speaker inherits attribution errors (context-inferred speakers in both lives, 72 and 52 segments flagged for audio review). At least one selector must be supplied, which the catalog schema cannot express.",
+      "created_in": 1,
+      "last_modified_in": 2
+    },
+    {
+      "id": "REQ-0005",
+      "status": "active",
+      "canonical_formulation": "Find the moments in a given live where a subject is discussed, returning timestamps and speakers.",
+      "example_phrasings_it": [
+        "In che punto della live si parla di Stellantis?",
+        "A che minuto hanno parlato dell'oro?",
+        "Portami al momento in cui si discute del FOMC."
+      ],
+      "scope": "single_live",
+      "intent": "navigation",
+      "focus": [
+        "instrument",
+        "topic"
+      ],
+      "parameters": [
+        {
+          "name": "live_id",
+          "type": "string",
+          "required": true,
+          "description": "Identifier of the live."
+        },
+        {
+          "name": "subject",
+          "type": "string",
+          "required": true,
+          "description": "Instrument (name or ticker), asset class or macro theme, resolved against the instrument and topic registries."
+        },
+        {
+          "name": "speaker",
+          "type": "string",
+          "required": false,
+          "description": "Speaker identifier; restricts results to that speaker."
+        }
+      ],
+      "mcp": {
+        "primitive": "tool",
+        "tool_name": "find_mentions",
+        "justification": "Search over segments with free-text input is a parameterized computation the model invokes, which is what tools are for."
+      },
+      "data_requirements": {
+        "transcript_fields": [
+          "segments[].segment_id",
+          "segments[].start_s",
+          "segments[].start_quality",
+          "segments[].speaker.speaker_id",
+          "segments[].text",
+          "mentions[]",
+          "live.video_url"
+        ],
+        "external": [
+          "registry: instruments",
+          "registry: topics"
+        ]
+      },
+      "evidence": [
+        {
+          "live_id": "MB20261028",
+          "segments": [
+            {
+              "start_s": 0,
+              "end_s": 640
+            },
+            {
+              "start_s": 1496,
+              "end_s": 1651
+            },
+            {
+              "start_s": 2530,
+              "end_s": 2537
+            },
+            {
+              "start_s": 4744,
+              "end_s": 4880
+            }
+          ],
+          "note": "Stellantis recurs in four separate places across the live."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 68,
+              "end_s": 144
+            },
+            {
+              "start_s": 2605,
+              "end_s": 2722
+            },
+            {
+              "start_s": 3502,
+              "end_s": 3547
+            },
+            {
+              "start_s": 4783,
+              "end_s": 4815
+            }
+          ],
+          "note": "Stellantis recurs in four places."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 36,
+              "end_s": 68
+            },
+            {
+              "start_s": 543,
+              "end_s": 660
+            },
+            {
+              "start_s": 2310,
+              "end_s": 2447
+            },
+            {
+              "start_s": 4484,
+              "end_s": 4652
+            },
+            {
+              "start_s": 4881,
+              "end_s": 4921
+            }
+          ],
+          "note": "Alphabet/Google recurs across host, Sartorelli, Cioli Puviani and Casarella."
+        }
+      ],
+      "confidence": "grounded",
+      "advice_risk": false,
+      "notes": "Shares the tool with REQ-0006; the split exists only because scope is single-valued. Deep links need live.video_url, absent for MB20261029, whose segment times are estimates.",
+      "created_in": 1,
+      "last_modified_in": 2
+    },
+    {
+      "id": "REQ-0006",
+      "status": "active",
+      "canonical_formulation": "Find the lives and moments where a subject was discussed, optionally restricted by speaker and period.",
+      "example_phrasings_it": [
+        "In quali live si è parlato di Campari nell'ultimo mese?",
+        "Quando ha parlato l'ultima volta Di Fazio di Telecom?"
+      ],
+      "scope": "cross_live",
+      "intent": "navigation",
+      "focus": [
+        "instrument",
+        "topic",
+        "live"
+      ],
+      "parameters": [
+        {
+          "name": "subject",
+          "type": "string",
+          "required": true,
+          "description": "Instrument (name or ticker), asset class or macro theme, resolved against the instrument and topic registries."
+        },
+        {
+          "name": "speaker",
+          "type": "string",
+          "required": false,
+          "description": "Speaker identifier; restricts results to that speaker."
+        },
+        {
+          "name": "period",
+          "type": "date_range",
+          "required": false,
+          "description": "Restricts the search to lives broadcast within this range."
+        }
+      ],
+      "mcp": {
+        "primitive": "tool",
+        "tool_name": "find_mentions",
+        "justification": "Same search tool as REQ-0005 with live_id omitted, so no separate primitive is justified."
+      },
+      "data_requirements": {
+        "transcript_fields": [
+          "segments[].segment_id",
+          "segments[].start_s",
+          "segments[].start_quality",
+          "segments[].speaker.speaker_id",
+          "segments[].text",
+          "mentions[]",
+          "live.live_id",
+          "live.date",
+          "live.video_url"
+        ],
+        "external": [
+          "registry: instruments",
+          "registry: topics",
+          "derived: live index built from canonical live blocks"
+        ]
+      },
+      "evidence": [
+        {
+          "live_id": "MB20261028",
+          "segments": [
+            {
+              "start_s": 0,
+              "end_s": 640
+            },
+            {
+              "start_s": 1675,
+              "end_s": 1903
+            },
+            {
+              "start_s": 2656,
+              "end_s": 3169
+            }
+          ],
+          "note": "Speakers refer to earlier lives (copper box 'lo dicevamo da un po'', Stellantis 'visto e rivisto', 'lo dicevamo già la settimana scorsa')."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 578,
+              "end_s": 619
+            },
+            {
+              "start_s": 1425,
+              "end_s": 1465
+            },
+            {
+              "start_s": 2345,
+              "end_s": 2377
+            },
+            {
+              "start_s": 4921,
+              "end_s": 4954
+            }
+          ],
+          "note": "Explicit references to earlier lives: Google support from an earlier chart of the day, a BTP put sold earlier, 've l'ho fatto vedere la scorsa settimana', Micron discussed earlier."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 68,
+              "end_s": 144
+            },
+            {
+              "start_s": 3461,
+              "end_s": 3547
+            },
+            {
+              "start_s": 3820,
+              "end_s": 3960
+            },
+            {
+              "start_s": 4103,
+              "end_s": 4176
+            }
+          ],
+          "note": "Subjects also discussed in MB20261028: Stellantis, Campari, Prysmian, gold."
+        }
+      ],
+      "confidence": "grounded",
+      "advice_risk": false,
+      "notes": "Grounded with two lives: speakers explicitly refer to earlier lives, and several subjects recur across MB20261028 and MB20261029. Same tool as REQ-0005.",
+      "created_in": 1,
+      "last_modified_in": 2
+    },
+    {
+      "id": "REQ-0007",
+      "status": "active",
+      "canonical_formulation": "Report what each speaker said about a subject in a given live, with attribution and timestamps.",
+      "example_phrasings_it": [
+        "Cosa hanno detto gli ospiti sulla Fed oggi?",
+        "Che cosa si è detto del petrolio nella live di ieri?",
+        "Cosa pensa Braganti dell'oro?"
+      ],
+      "scope": "single_live",
+      "intent": "lookup",
+      "focus": [
+        "instrument",
+        "topic",
+        "speaker"
+      ],
+      "parameters": [
+        {
+          "name": "live_id",
+          "type": "string",
+          "required": true,
+          "description": "Identifier of the live."
+        },
+        {
+          "name": "subject",
+          "type": "string",
+          "required": true,
+          "description": "Instrument (name or ticker), asset class or macro theme, resolved against the instrument and topic registries."
+        },
+        {
+          "name": "speaker",
+          "type": "string",
+          "required": false,
+          "description": "Speaker identifier; restricts results to that speaker."
+        }
+      ],
+      "mcp": {
+        "primitive": "tool",
+        "tool_name": "get_subject_discussion",
+        "justification": "Requires resolving the subject and filtering and grouping segments by speaker at call time."
+      },
+      "data_requirements": {
+        "transcript_fields": [
+          "segments[].segment_id",
+          "segments[].start_s",
+          "segments[].end_s",
+          "segments[].start_quality",
+          "segments[].speaker.speaker_id",
+          "segments[].text",
+          "segments[].speaker.confidence",
+          "segments[].speaker.needs_audio_review",
+          "segments[].mixed_speakers",
+          "mentions[]"
+        ],
+        "external": [
+          "registry: instruments",
+          "registry: topics",
+          "registry: speakers"
+        ]
+      },
+      "evidence": [
+        {
+          "live_id": "MB20261028",
+          "segments": [
+            {
+              "start_s": 2615,
+              "end_s": 2990
+            },
+            {
+              "start_s": 3476,
+              "end_s": 3581
+            },
+            {
+              "start_s": 4167,
+              "end_s": 4408
+            },
+            {
+              "start_s": 4882,
+              "end_s": 5110
+            }
+          ],
+          "note": "Fed decision discussed by Michettoni, Braganti, Prisco and Gaudioso."
+        },
+        {
+          "live_id": "MB20261028",
+          "segments": [
+            {
+              "start_s": 3543,
+              "end_s": 3803
+            }
+          ],
+          "note": "Gold discussed by Biocchi and Braganti."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 0,
+              "end_s": 68
+            },
+            {
+              "start_s": 1387,
+              "end_s": 1425
+            },
+            {
+              "start_s": 1800,
+              "end_s": 1904
+            },
+            {
+              "start_s": 2107,
+              "end_s": 2310
+            },
+            {
+              "start_s": 4208,
+              "end_s": 4484
+            }
+          ],
+          "note": "Fed decision discussed by Biocchi, Serafini, Sartorelli and Cioli Puviani."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 543,
+              "end_s": 660
+            },
+            {
+              "start_s": 2310,
+              "end_s": 2447
+            },
+            {
+              "start_s": 4484,
+              "end_s": 4652
+            },
+            {
+              "start_s": 4881,
+              "end_s": 4921
+            }
+          ],
+          "note": "Alphabet results discussed by four speakers."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 1497,
+              "end_s": 1726
+            },
+            {
+              "start_s": 2828,
+              "end_s": 2891
+            },
+            {
+              "start_s": 3580,
+              "end_s": 3696
+            }
+          ],
+          "note": "Tobin Tax increase discussed by Biocchi, Serafini, Rea and Cartisano."
+        }
+      ],
+      "confidence": "grounded",
+      "advice_risk": true,
+      "notes": "Core request. Opinions must be returned as attributed quotes, never as facts; the response should carry the segment's attribution confidence.",
+      "created_in": 1,
+      "last_modified_in": 2
+    },
+    {
+      "id": "REQ-0008",
+      "status": "active",
+      "canonical_formulation": "List the price levels (supports, resistances, targets) cited for an instrument in a given live, with speaker and timestamp.",
+      "example_phrasings_it": [
+        "Quali livelli ha indicato Di Fazio su Banco BPM?",
+        "Che supporti sono stati dati sul Nasdaq oggi?",
+        "A che prezzo vedono Booking?"
+      ],
+      "scope": "single_live",
+      "intent": "lookup",
+      "focus": [
+        "instrument",
+        "speaker"
+      ],
+      "parameters": [
+        {
+          "name": "live_id",
+          "type": "string",
+          "required": true,
+          "description": "Identifier of the live."
+        },
+        {
+          "name": "instrument",
+          "type": "string",
+          "required": true,
+          "description": "Instrument name or ticker."
+        },
+        {
+          "name": "speaker",
+          "type": "string",
+          "required": false,
+          "description": "Speaker identifier; restricts results to that speaker."
+        }
+      ],
+      "mcp": {
+        "primitive": "tool",
+        "tool_name": "get_cited_levels",
+        "justification": "Returns a structured filtered list from an extraction table, parameterized at call time."
+      },
+      "data_requirements": {
+        "transcript_fields": [
+          "segments[].segment_id",
+          "segments[].start_s",
+          "segments[].end_s",
+          "segments[].start_quality",
+          "segments[].speaker.speaker_id",
+          "segments[].text",
+          "segments[].speaker.confidence",
+          "segments[].speaker.needs_audio_review",
+          "segments[].mixed_speakers",
+          "anomalies[]"
+        ],
+        "external": [
+          "derived: extracted level table (instrument, value, level type, speaker, segment)",
+          "registry: instruments",
+          "external: market data to sanity-check ASR numbers"
+        ]
+      },
+      "evidence": [
+        {
+          "live_id": "MB20261028",
+          "segments": [
+            {
+              "start_s": 1675,
+              "end_s": 2332
+            }
+          ],
+          "note": "Di Fazio gives boxes and levels on Banco BPM, Campari, Prysmian, Saipem, Italgas, TIM."
+        },
+        {
+          "live_id": "MB20261028",
+          "segments": [
+            {
+              "start_s": 2990,
+              "end_s": 3213
+            },
+            {
+              "start_s": 4444,
+              "end_s": 4728
+            },
+            {
+              "start_s": 5171,
+              "end_s": 5361
+            }
+          ],
+          "note": "Michettoni on Nasdaq/S&P futures, Gei on Booking/AutoZone/AmEx, Gaudioso 0DTE expected-move levels (garbled by ASR)."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 992,
+              "end_s": 1497
+            }
+          ],
+          "note": "Serafini: S&P 500 future supports and resistance, Vertiv, Oracle, Alibaba, TLT and BTP levels (partly ASR-garbled)."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 144,
+              "end_s": 408
+            },
+            {
+              "start_s": 3820,
+              "end_s": 4056
+            }
+          ],
+          "note": "Biocchi on FTSE MIB 50,000/51,000, Bitcoin 60-80k, gold 4,000, copper 6.40-6.90; Cartisano on Campari, Prysmian gap 113.15, STM 200-day average 43.81."
+        }
+      ],
+      "confidence": "grounded",
+      "advice_risk": true,
+      "notes": "Highest regulatory exposure: entry and exit levels by definition. Split from REQ-0007 because it needs a separate numeric extraction and validation pipeline. ASR garbles levels in both lives (split thousands, missing digits); anomalies[] lists the affected segments.",
+      "created_in": 1,
+      "last_modified_in": 2
+    },
+    {
+      "id": "REQ-0009",
+      "status": "active",
+      "canonical_formulation": "Return factual figures reported in a given live about a company, market or event (results, estimates, data points).",
+      "example_phrasings_it": [
+        "Che numeri ha fatto Stellantis secondo la live?",
+        "Quanto investirà Microsoft in data center secondo quanto detto?"
+      ],
+      "scope": "single_live",
+      "intent": "lookup",
+      "focus": [
+        "instrument",
+        "event"
+      ],
+      "parameters": [
+        {
+          "name": "live_id",
+          "type": "string",
+          "required": true,
+          "description": "Identifier of the live."
+        },
+        {
+          "name": "subject",
+          "type": "string",
+          "required": true,
+          "description": "Instrument (name or ticker), asset class or macro theme, resolved against the instrument and topic registries."
+        },
+        {
+          "name": "metric",
+          "type": "string",
+          "required": false,
+          "description": "Specific metric, e.g. revenue, free cash flow, short interest."
+        }
+      ],
+      "mcp": {
+        "primitive": "tool",
+        "tool_name": "get_reported_figures",
+        "justification": "Returns a filtered subset of an extracted figures table based on call-time parameters."
+      },
+      "data_requirements": {
+        "transcript_fields": [
+          "segments[].segment_id",
+          "segments[].start_s",
+          "segments[].end_s",
+          "segments[].start_quality",
+          "segments[].speaker.speaker_id",
+          "segments[].text",
+          "anomalies[]",
+          "live.date"
+        ],
+        "external": [
+          "derived: extracted figures table",
+          "registry: instruments",
+          "registry: topics",
+          "external: fundamentals data source for verification"
+        ]
+      },
+      "evidence": [
+        {
+          "live_id": "MB20261028",
+          "segments": [
+            {
+              "start_s": 1496,
+              "end_s": 1651
+            },
+            {
+              "start_s": 4042,
+              "end_s": 4408
+            },
+            {
+              "start_s": 4444,
+              "end_s": 4695
+            }
+          ],
+          "note": "Stellantis Q3 figures and short interest, SK hynix margin, Azure growth and capex estimates, AutoZone share count."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 0,
+              "end_s": 36
+            },
+            {
+              "start_s": 741,
+              "end_s": 844
+            },
+            {
+              "start_s": 1873,
+              "end_s": 1904
+            }
+          ],
+          "note": "Fed vote 10-2, F5 EPS 4.42 vs 4.26 expected, FedWatch 82% for a December hike."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 1528,
+              "end_s": 1602
+            },
+            {
+              "start_s": 2891,
+              "end_s": 3039
+            },
+            {
+              "start_s": 3705,
+              "end_s": 3754
+            },
+            {
+              "start_s": 3851,
+              "end_s": 3960
+            },
+            {
+              "start_s": 5107,
+              "end_s": 5140
+            }
+          ],
+          "note": "Piazza Affari volumes, institutional exposure and index short interest, Campari organic vs reported revenue, cost-erosion example."
+        }
+      ],
+      "confidence": "grounded",
+      "advice_risk": false,
+      "notes": "Sources state that figures were not fact-checked; answers must carry the source attribution and an unverified flag. Figures quoted by the host from screens (FedWatch, poll results) and figures stated by guests have different reliability.",
+      "created_in": 1,
+      "last_modified_in": 2
+    },
+    {
+      "id": "REQ-0010",
+      "status": "active",
+      "canonical_formulation": "List the instruments and topics a given speaker covered in a given live.",
+      "example_phrasings_it": [
+        "Di quali titoli ha parlato Enrico Gei oggi?",
+        "Cosa ha trattato Prisco nella live?"
+      ],
+      "scope": "single_live",
+      "intent": "lookup",
+      "focus": [
+        "speaker",
+        "instrument",
+        "topic"
+      ],
+      "parameters": [
+        {
+          "name": "live_id",
+          "type": "string",
+          "required": true,
+          "description": "Identifier of the live."
+        },
+        {
+          "name": "speaker",
+          "type": "string",
+          "required": true,
+          "description": "Speaker identifier."
+        }
+      ],
+      "mcp": {
+        "primitive": "tool",
+        "tool_name": "get_speaker_coverage",
+        "justification": "A filter over the per-live index by speaker; a tool keeps one parameterized call instead of one resource per speaker and live."
+      },
+      "data_requirements": {
+        "transcript_fields": [
+          "segments[].speaker.speaker_id",
+          "segments[].chapter_id",
+          "chapters[].speaker_ids",
+          "chapters[].topics_raw",
+          "mentions[]",
+          "coverage.mention_index_scope"
+        ],
+        "external": [
+          "registry: speakers",
+          "registry: instruments",
+          "registry: topics"
+        ]
+      },
+      "evidence": [
+        {
+          "live_id": "MB20261028",
+          "segments": [
+            {
+              "start_s": 1675,
+              "end_s": 2334
+            },
+            {
+              "start_s": 4042,
+              "end_s": 4441
+            },
+            {
+              "start_s": 4444,
+              "end_s": 4739
+            }
+          ],
+          "note": "Guest blocks each covering a declared set of instruments."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 960,
+              "end_s": 1497
+            },
+            {
+              "start_s": 3820,
+              "end_s": 4058
+            }
+          ],
+          "note": "Guest blocks each covering a declared set of instruments (chapter topics list them)."
+        }
+      ],
+      "confidence": "grounded",
+      "advice_risk": false,
+      "notes": "Could be a resource template (easygoing://lives/{live_id}/speakers/{speaker_id}); kept as a tool pending a decision on how many resource URIs the server exposes. Results depend on mention_index_scope as in REQ-0003.",
+      "created_in": 1,
+      "last_modified_in": 2
+    },
+    {
+      "id": "REQ-0011",
+      "status": "active",
+      "canonical_formulation": "Describe a speaker: role in the programme, affiliation, specialty, proprietary tools and commercial offers.",
+      "example_phrasings_it": [
+        "Chi è Peter Braganti?",
+        "Per chi lavora Braganti?",
+        "Cos'è il Funding Stress Index di Michettoni?"
+      ],
+      "scope": "cross_live",
+      "intent": "lookup",
+      "focus": [
+        "speaker"
+      ],
+      "parameters": [
+        {
+          "name": "speaker_id",
+          "type": "string",
+          "required": true,
+          "description": "Speaker identifier."
+        }
+      ],
+      "mcp": {
+        "primitive": "resource_template",
+        "uri_template": "easygoing://speakers/{speaker_id}",
+        "justification": "Speaker profiles are slowly changing reference data, best exposed as readable resources."
+      },
+      "data_requirements": {
+        "transcript_fields": [
+          "segments[].speaker.speaker_id",
+          "segments[].text",
+          "chapters[].speaker_ids"
+        ],
+        "external": [
+          "registry: speakers (extended with affiliation, role, links, disclosures)"
+        ]
+      },
+      "evidence": [
+        {
+          "live_id": "MB20261028",
+          "segments": [
+            {
+              "start_s": 3605,
+              "end_s": 3803
+            }
+          ],
+          "note": "Braganti speaks 'noi di WisdomTree', an ETF issuer, while giving a constructive view on gold and ETF inflows."
+        },
+        {
+          "live_id": "MB20261028",
+          "segments": [
+            {
+              "start_s": 3219,
+              "end_s": 3262
+            },
+            {
+              "start_s": 4035,
+              "end_s": 4166
+            }
+          ],
+          "note": "Michettoni's self-built indicator; Sartorelli promotes a paid live."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 4103,
+              "end_s": 4144
+            }
+          ],
+          "note": "Sartorelli promotes a paid live with proprietary methods, as in MB20261028."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 4991,
+              "end_s": 5051
+            }
+          ],
+          "note": "Casarella presents a free tool built by his firm."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 1648,
+              "end_s": 1651
+            },
+            {
+              "start_s": 3180,
+              "end_s": 3212
+            }
+          ],
+          "note": "Serafini states trading since 2000; Rea asks to trust his unpublished studies."
+        }
+      ],
+      "confidence": "grounded",
+      "advice_risk": false,
+      "notes": "Affiliation is needed for conflict-of-interest disclosure next to any attributed opinion. Commercial promotion recurs (Sartorelli's paid live in both lives; Casarella's firm tool). The seed speaker registry has ids and names only; affiliations and links are posted in chat and are not in the transcripts.",
+      "created_in": 1,
+      "last_modified_in": 2
+    },
+    {
+      "id": "REQ-0012",
+      "status": "active",
+      "canonical_formulation": "List the scheduled events and dates mentioned in a given live: central bank meetings, macro data releases, earnings, elections, listings, and programme events (in-person events, appearances, paid lives).",
+      "example_phrasings_it": [
+        "Quali appuntamenti sono stati segnalati nella live di oggi?",
+        "Quando escono i conti di Booking secondo la diretta?",
+        "Quando è l'evento di Milano annunciato in diretta?"
+      ],
+      "scope": "single_live",
+      "intent": "lookup",
+      "focus": [
+        "event"
+      ],
+      "parameters": [
+        {
+          "name": "live_id",
+          "type": "string",
+          "required": true,
+          "description": "Identifier of the live."
+        },
+        {
+          "name": "event_type",
+          "type": "enum",
+          "required": false,
+          "allowed_values": [
+            "central_bank",
+            "macro_data",
+            "earnings",
+            "election",
+            "listing",
+            "programme",
+            "other"
+          ],
+          "description": "Type of event."
+        }
+      ],
+      "mcp": {
+        "primitive": "tool",
+        "tool_name": "get_mentioned_events",
+        "justification": "Requires resolving relative dates against the live date and filtering by type at call time."
+      },
+      "data_requirements": {
+        "transcript_fields": [
+          "segments[].segment_id",
+          "segments[].start_s",
+          "segments[].end_s",
+          "segments[].start_quality",
+          "segments[].speaker.speaker_id",
+          "segments[].text",
+          "live.date"
+        ],
+        "external": [
+          "derived: extracted events table",
+          "external: economic and earnings calendar for verification"
+        ]
+      },
+      "evidence": [
+        {
+          "live_id": "MB20261028",
+          "segments": [
+            {
+              "start_s": 0,
+              "end_s": 640
+            },
+            {
+              "start_s": 1496,
+              "end_s": 1651
+            },
+            {
+              "start_s": 1675,
+              "end_s": 1903
+            },
+            {
+              "start_s": 3476,
+              "end_s": 3543
+            },
+            {
+              "start_s": 4444,
+              "end_s": 4695
+            }
+          ],
+          "note": "FOMC and MSFT/GOOGL earnings tonight, Anthropic listing in November, Amplifon and Italgas results, ECB and BoJ, Booking in six days."
+        },
+        {
+          "live_id": "MB20261028",
+          "segments": [
+            {
+              "start_s": 773,
+              "end_s": 1471
+            }
+          ],
+          "note": "US elections on the 3rd."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 476,
+              "end_s": 543
+            },
+            {
+              "start_s": 1318,
+              "end_s": 1425
+            },
+            {
+              "start_s": 2208,
+              "end_s": 2240
+            },
+            {
+              "start_s": 4383,
+              "end_s": 4418
+            }
+          ],
+          "note": "PCE and US Q3 GDP, ECB at 14:15 with press conference at 14:45, 7-year auction, option expiry 20 Nov, Alibaba results 24-25 Nov, US elections in six days, data at 13:30."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 3429,
+              "end_s": 3457
+            },
+            {
+              "start_s": 4103,
+              "end_s": 4138
+            }
+          ],
+          "note": "Programme events: in-person event in Milan on 13 Nov, appearance on another channel at 19:00, Sartorelli's paid live tonight."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 1497,
+              "end_s": 1573
+            }
+          ],
+          "note": "Tobin Tax increase proposed in the budget law."
+        }
+      ],
+      "confidence": "grounded",
+      "advice_risk": false,
+      "notes": "Relative expressions (oggi, stasera, fra 6 giorni) need live.date. Generalized in v2 to programme events (in-person events, appearances, paid lives), observed in both lives. Claims are unverified.",
+      "created_in": 1,
+      "last_modified_in": 2
+    },
+    {
+      "id": "REQ-0013",
+      "status": "active",
+      "canonical_formulation": "Compare the views of different speakers on the same subject within a given live, highlighting agreement and disagreement.",
+      "example_phrasings_it": [
+        "Gli ospiti di oggi erano d'accordo sulla Fed?",
+        "Michettoni e Prisco vedono il Nasdaq allo stesso modo?"
+      ],
+      "scope": "single_live",
+      "intent": "comparison",
+      "focus": [
+        "speaker",
+        "topic",
+        "instrument"
+      ],
+      "parameters": [
+        {
+          "name": "live_id",
+          "type": "string",
+          "required": true,
+          "description": "Identifier of the live."
+        },
+        {
+          "name": "subject",
+          "type": "string",
+          "required": true,
+          "description": "Instrument (name or ticker), asset class or macro theme, resolved against the instrument and topic registries."
+        },
+        {
+          "name": "speakers",
+          "type": "array",
+          "required": false,
+          "description": "Speakers to compare; all who discussed the subject if omitted."
+        }
+      ],
+      "mcp": {
+        "primitive": "prompt",
+        "prompt_name": "compare_views",
+        "justification": "Comparison is synthesis over attributed statements; a prompt fixes the structure and attribution rules while the retrieval comes from get_subject_discussion."
+      },
+      "data_requirements": {
+        "transcript_fields": [
+          "segments[].segment_id",
+          "segments[].start_s",
+          "segments[].end_s",
+          "segments[].start_quality",
+          "segments[].speaker.speaker_id",
+          "segments[].text",
+          "segments[].speaker.confidence",
+          "segments[].speaker.needs_audio_review",
+          "segments[].mixed_speakers"
+        ],
+        "external": [
+          "registry: instruments",
+          "registry: topics",
+          "registry: speakers"
+        ]
+      },
+      "evidence": [
+        {
+          "live_id": "MB20261028",
+          "segments": [
+            {
+              "start_s": 2615,
+              "end_s": 2990
+            },
+            {
+              "start_s": 3476,
+              "end_s": 3581
+            },
+            {
+              "start_s": 4167,
+              "end_s": 4408
+            }
+          ],
+          "note": "Fed: restrictive pause with 11% surprise-hike risk vs no change or +25bp vs implied 4.63% by Sep 2027."
+        },
+        {
+          "live_id": "MB20261028",
+          "segments": [
+            {
+              "start_s": 773,
+              "end_s": 1471
+            },
+            {
+              "start_s": 2656,
+              "end_s": 2990
+            },
+            {
+              "start_s": 4882,
+              "end_s": 5110
+            }
+          ],
+          "note": "Market stress: VIX above band vs Funding Stress Index medium-low vs VIX call buying."
+        },
+        {
+          "live_id": "MB20261028",
+          "segments": [
+            {
+              "start_s": 4728,
+              "end_s": 4744
+            }
+          ],
+          "note": "Explicit agreement and partial disagreement between Biocchi and Gei."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 0,
+              "end_s": 68
+            },
+            {
+              "start_s": 1387,
+              "end_s": 1425
+            },
+            {
+              "start_s": 2107,
+              "end_s": 2310
+            },
+            {
+              "start_s": 4208,
+              "end_s": 4484
+            }
+          ],
+          "note": "Fed: hawkish shift and 82% December hike odds vs no need to hike (inflation 3.7% vs funds 4%) vs non-event with words not matched by facts."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 1497,
+              "end_s": 1726
+            },
+            {
+              "start_s": 2828,
+              "end_s": 2891
+            },
+            {
+              "start_s": 3580,
+              "end_s": 3696
+            }
+          ],
+          "note": "Tobin Tax: unanimous opposition, different arguments."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 316,
+              "end_s": 356
+            },
+            {
+              "start_s": 2538,
+              "end_s": 2605
+            },
+            {
+              "start_s": 4138,
+              "end_s": 4176
+            }
+          ],
+          "note": "Gold: host sees struggle around 4,000; Sartorelli reads volatility and open interest as pointing to a break below 4,000."
+        }
+      ],
+      "confidence": "grounded",
+      "advice_risk": true,
+      "created_in": 1,
+      "last_modified_in": 2,
+      "notes": "MB20261029 gives clean test cases for both disagreement (Fed) and agreement (Tobin Tax)."
+    },
+    {
+      "id": "REQ-0014",
+      "status": "active",
+      "canonical_formulation": "Show how the view on a subject has changed over time across lives, optionally for one speaker.",
+      "example_phrasings_it": [
+        "Come è cambiata l'opinione di Michettoni sui bond nelle ultime settimane?",
+        "Biocchi è sempre stato prudente su Stellantis?",
+        "Come si è evoluta la view sull'oro?"
+      ],
+      "scope": "cross_live",
+      "intent": "evolution",
+      "focus": [
+        "speaker",
+        "instrument",
+        "topic"
+      ],
+      "parameters": [
+        {
+          "name": "subject",
+          "type": "string",
+          "required": true,
+          "description": "Instrument (name or ticker), asset class or macro theme, resolved against the instrument and topic registries."
+        },
+        {
+          "name": "speaker",
+          "type": "string",
+          "required": false,
+          "description": "Speaker identifier; restricts results to that speaker."
+        },
+        {
+          "name": "period",
+          "type": "date_range",
+          "required": false,
+          "description": "Restricts the search to lives broadcast within this range."
+        }
+      ],
+      "mcp": {
+        "primitive": "tool",
+        "tool_name": "get_stance_history",
+        "justification": "Returns a dated, attributed series of stances filtered at call time across many lives."
+      },
+      "data_requirements": {
+        "transcript_fields": [
+          "segments[].segment_id",
+          "segments[].start_s",
+          "segments[].end_s",
+          "segments[].start_quality",
+          "segments[].speaker.speaker_id",
+          "segments[].text",
+          "segments[].speaker.confidence",
+          "segments[].speaker.needs_audio_review",
+          "segments[].mixed_speakers",
+          "live.date"
+        ],
+        "external": [
+          "derived: stance table (speaker, subject, direction, horizon, conditions, segment)",
+          "derived: live index built from canonical live blocks",
+          "registry: speakers",
+          "registry: instruments",
+          "registry: topics"
+        ]
+      },
+      "evidence": [
+        {
+          "live_id": "MB20261028",
+          "segments": [
+            {
+              "start_s": 0,
+              "end_s": 640
+            },
+            {
+              "start_s": 1675,
+              "end_s": 1903
+            },
+            {
+              "start_s": 2656,
+              "end_s": 3169
+            }
+          ],
+          "note": "Speakers state their own earlier positions (bond stance since late 2025, copper box, EUR/USD 1.14 expectation)."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 68,
+              "end_s": 144
+            },
+            {
+              "start_s": 2605,
+              "end_s": 2774
+            }
+          ],
+          "note": "Biocchi on Stellantis after MB20261028's short-squeeze thesis: breakout candle as possible reversal."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 3461,
+              "end_s": 3502
+            },
+            {
+              "start_s": 3820,
+              "end_s": 3960
+            }
+          ],
+          "note": "Campari after MB20261028 levels: negative open, Cartisano exited."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 2538,
+              "end_s": 2605
+            },
+            {
+              "start_s": 4138,
+              "end_s": 4176
+            }
+          ],
+          "note": "Gold after Braganti's constructive view in MB20261028: Sartorelli short intraday, possible break below 4,000."
+        }
+      ],
+      "confidence": "grounded",
+      "advice_risk": true,
+      "notes": "Grounded with two lives, but only same-subject continuity is observable so far (Stellantis by the host in both lives); the same guest rarely returns on consecutive days, so per-speaker evolution needs a longer series. Stance extraction from conversational Italian remains the hardest data dependency in the catalog.",
+      "created_in": 1,
+      "last_modified_in": 2
+    },
+    {
+      "id": "REQ-0015",
+      "status": "active",
+      "canonical_formulation": "Rank the instruments or topics most discussed across lives in a period.",
+      "example_phrasings_it": [
+        "Quali sono i titoli più citati nelle live di ottobre?",
+        "Di cosa si è parlato di più questo mese?"
+      ],
+      "scope": "cross_live",
+      "intent": "aggregation",
+      "focus": [
+        "instrument",
+        "topic"
+      ],
+      "parameters": [
+        {
+          "name": "period",
+          "type": "date_range",
+          "required": false,
+          "description": "Restricts the search to lives broadcast within this range."
+        },
+        {
+          "name": "kind",
+          "type": "enum",
+          "required": false,
+          "allowed_values": [
+            "instrument",
+            "topic"
+          ],
+          "description": "Restrict to instruments or topics."
+        },
+        {
+          "name": "limit",
+          "type": "integer",
+          "required": false,
+          "description": "Maximum results."
+        }
+      ],
+      "mcp": {
+        "primitive": "tool",
+        "tool_name": "rank_subjects",
+        "justification": "An aggregation computed over all lives at call time."
+      },
+      "data_requirements": {
+        "transcript_fields": [
+          "mentions[].instrument_id",
+          "mentions[].segment_id",
+          "mentions[].origin",
+          "coverage.mention_index_scope",
+          "live.date"
+        ],
+        "external": [
+          "registry: instruments",
+          "registry: topics",
+          "derived: uniform mention extraction across lives",
+          "derived: live index built from canonical live blocks"
+        ]
+      },
+      "evidence": [
+        {
+          "live_id": "MB20261028",
+          "segments": [
+            {
+              "start_s": 0,
+              "end_s": 640
+            },
+            {
+              "start_s": 1496,
+              "end_s": 1651
+            },
+            {
+              "start_s": 1675,
+              "end_s": 1903
+            },
+            {
+              "start_s": 4744,
+              "end_s": 4880
+            }
+          ],
+          "note": "Within one live Stellantis is the most-discussed security (10 tagged chunks)."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 36,
+              "end_s": 144
+            },
+            {
+              "start_s": 2605,
+              "end_s": 2722
+            },
+            {
+              "start_s": 4484,
+              "end_s": 4652
+            },
+            {
+              "start_s": 4783,
+              "end_s": 4847
+            }
+          ],
+          "note": "Stellantis and Alphabet are the most indexed securities in both lives (counts not comparable: chunk tags vs segments)."
+        }
+      ],
+      "confidence": "grounded",
+      "advice_risk": false,
+      "notes": "Mention counts measure airtime, not importance, and should be labeled as such. Counts across MB20261028 (chunk tags, equities only) and MB20261029 (segments, multi-asset) are not comparable until mentions come from a uniform extraction.",
+      "created_in": 1,
+      "last_modified_in": 2
+    },
+    {
+      "id": "REQ-0016",
+      "status": "active",
+      "canonical_formulation": "Compare views on a subject across speakers and lives within a period.",
+      "example_phrasings_it": [
+        "Negli ultimi briefing gli ospiti hanno cambiato idea sulla Fed?",
+        "Confronta cosa dicevano del Nasdaq la settimana scorsa e oggi."
+      ],
+      "scope": "cross_live",
+      "intent": "comparison",
+      "focus": [
+        "speaker",
+        "topic",
+        "live"
+      ],
+      "parameters": [
+        {
+          "name": "subject",
+          "type": "string",
+          "required": true,
+          "description": "Instrument (name or ticker), asset class or macro theme, resolved against the instrument and topic registries."
+        },
+        {
+          "name": "live_ids",
+          "type": "array",
+          "required": false,
+          "description": "Lives to compare."
+        },
+        {
+          "name": "period",
+          "type": "date_range",
+          "required": false,
+          "description": "Restricts the search to lives broadcast within this range."
+        }
+      ],
+      "mcp": {
+        "primitive": "prompt",
+        "prompt_name": "compare_views",
+        "justification": "Same synthesis prompt as REQ-0013 fed with stances from get_stance_history across lives."
+      },
+      "data_requirements": {
+        "transcript_fields": [
+          "segments[].segment_id",
+          "segments[].start_s",
+          "segments[].end_s",
+          "segments[].start_quality",
+          "segments[].speaker.speaker_id",
+          "segments[].text",
+          "segments[].speaker.confidence",
+          "segments[].speaker.needs_audio_review",
+          "segments[].mixed_speakers",
+          "live.date"
+        ],
+        "external": [
+          "derived: stance table (speaker, subject, direction, horizon, conditions, segment)",
+          "derived: live index built from canonical live blocks"
+        ]
+      },
+      "evidence": [
+        {
+          "live_id": "MB20261028",
+          "segments": [
+            {
+              "start_s": 773,
+              "end_s": 1471
+            },
+            {
+              "start_s": 5171,
+              "end_s": 5361
+            }
+          ],
+          "note": "Speakers reference other speakers' and earlier work (Sartorelli citing the host's previous presentation, Gaudioso citing Prisco)."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 0,
+              "end_s": 68
+            },
+            {
+              "start_s": 1800,
+              "end_s": 1904
+            },
+            {
+              "start_s": 2107,
+              "end_s": 2310
+            },
+            {
+              "start_s": 4208,
+              "end_s": 4484
+            }
+          ],
+          "note": "Post-decision Fed views, comparable with the pre-decision views of MB20261028."
+        }
+      ],
+      "confidence": "grounded",
+      "advice_risk": true,
+      "notes": "Grounded with two lives (Fed views before and after the 28 Oct decision). Still composable from REQ-0014 retrieval plus the REQ-0013 prompt; kept separate only because scope is single-valued.",
+      "created_in": 1,
+      "last_modified_in": 2
+    },
+    {
+      "id": "REQ-0017",
+      "status": "active",
+      "canonical_formulation": "List the occurrences of a recurring rubric across lives (e.g. chart of the day) with the instrument featured.",
+      "example_phrasings_it": [
+        "Quali sono stati i grafici del giorno di questa settimana?",
+        "Cosa ha vinto la Voce dell'Agorà negli ultimi briefing?"
+      ],
+      "scope": "cross_live",
+      "intent": "aggregation",
+      "focus": [
+        "event",
+        "instrument",
+        "live"
+      ],
+      "parameters": [
+        {
+          "name": "rubric",
+          "type": "string",
+          "required": true,
+          "description": "Rubric name."
+        },
+        {
+          "name": "period",
+          "type": "date_range",
+          "required": false,
+          "description": "Restricts the search to lives broadcast within this range."
+        }
+      ],
+      "mcp": {
+        "primitive": "tool",
+        "tool_name": "list_rubric_occurrences",
+        "justification": "Filters chapters across lives by rubric and period at call time."
+      },
+      "data_requirements": {
+        "transcript_fields": [
+          "chapters[].rubric_id",
+          "chapters[].start_s",
+          "chapters[].topics_raw",
+          "segments[].chapter_id",
+          "mentions[]",
+          "live.live_id",
+          "live.date"
+        ],
+        "external": [
+          "registry: rubrics",
+          "registry: instruments",
+          "derived: live index built from canonical live blocks"
+        ]
+      },
+      "evidence": [
+        {
+          "live_id": "MB20261028",
+          "segments": [
+            {
+              "start_s": 640,
+              "end_s": 731
+            },
+            {
+              "start_s": 2335,
+              "end_s": 2530
+            },
+            {
+              "start_s": 4744,
+              "end_s": 4829
+            }
+          ],
+          "note": "Grafico del giorno (Snam), Voce dell'Agorà poll (STM 23%), TWbook Time (Stellantis)."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 707,
+              "end_s": 880
+            },
+            {
+              "start_s": 1800,
+              "end_s": 1904
+            },
+            {
+              "start_s": 2605,
+              "end_s": 2828
+            },
+            {
+              "start_s": 4103,
+              "end_s": 4176
+            },
+            {
+              "start_s": 4783,
+              "end_s": 4847
+            }
+          ],
+          "note": "Grafico del giorno (F5), Chiediamolo all'AI (Fed), Voce dell'Agorà (Stellantis, Deutsche Bank, Oracle), Uno strumento al giorno (gold), TWbook Time (Stellantis, Campari)."
+        }
+      ],
+      "confidence": "grounded",
+      "advice_risk": true,
+      "notes": "A list of daily featured stocks reads as a list of picks. Rubric names now resolved at ingestion via the rubric registry. Focus 'event' remains a stretch: a rubric is a programme segment, not a market event.",
+      "created_in": 1,
+      "last_modified_in": 2
+    },
+    {
+      "id": "REQ-0018",
+      "status": "active",
+      "canonical_formulation": "List the directional calls or opportunities expressed in a given live, with speaker, instrument, direction and conditions.",
+      "example_phrasings_it": [
+        "Quali titoli consigliano oggi?",
+        "Su cosa sono rialzisti gli ospiti?",
+        "Ci sono occasioni di acquisto segnalate nella live?"
+      ],
+      "scope": "single_live",
+      "intent": "aggregation",
+      "focus": [
+        "instrument",
+        "speaker"
+      ],
+      "parameters": [
+        {
+          "name": "live_id",
+          "type": "string",
+          "required": true,
+          "description": "Identifier of the live."
+        },
+        {
+          "name": "direction",
+          "type": "enum",
+          "required": false,
+          "allowed_values": [
+            "bullish",
+            "bearish",
+            "neutral"
+          ],
+          "description": "Direction of the call."
+        }
+      ],
+      "mcp": {
+        "primitive": "tool",
+        "tool_name": "get_directional_calls",
+        "justification": "Filters the stance table for one live by direction at call time."
+      },
+      "data_requirements": {
+        "transcript_fields": [
+          "segments[].segment_id",
+          "segments[].start_s",
+          "segments[].end_s",
+          "segments[].start_quality",
+          "segments[].speaker.speaker_id",
+          "segments[].text",
+          "segments[].speaker.confidence",
+          "segments[].speaker.needs_audio_review",
+          "segments[].mixed_speakers"
+        ],
+        "external": [
+          "derived: stance table (speaker, subject, direction, horizon, conditions, segment)",
+          "registry: instruments"
+        ]
+      },
+      "evidence": [
+        {
+          "live_id": "MB20261028",
+          "segments": [
+            {
+              "start_s": 4444,
+              "end_s": 4695
+            }
+          ],
+          "note": "Gei: a break could give 'una bella occasione in area 130' on Booking."
+        },
+        {
+          "live_id": "MB20261028",
+          "segments": [
+            {
+              "start_s": 3605,
+              "end_s": 3803
+            },
+            {
+              "start_s": 4728,
+              "end_s": 4739
+            },
+            {
+              "start_s": 5675,
+              "end_s": 5699
+            }
+          ],
+          "note": "Braganti constructive on gold; Biocchi likes AmEx; Gaudioso frames 13-15% post-midterm drawdowns as buying opportunities."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 1168,
+              "end_s": 1234
+            },
+            {
+              "start_s": 1354,
+              "end_s": 1425
+            }
+          ],
+          "note": "Serafini: Oracle 'da monitorare', Alibaba 'interessante', TLT interesting at 76-77."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 3102,
+              "end_s": 3180
+            },
+            {
+              "start_s": 3893,
+              "end_s": 3960
+            },
+            {
+              "start_s": 4138,
+              "end_s": 4176
+            }
+          ],
+          "note": "Rea: bullish while above the range; Cartisano sees Campari back above 8 medium term; Sartorelli 'assolutamente short' on gold intraday."
+        }
+      ],
+      "confidence": "grounded",
+      "advice_risk": true,
+      "notes": "The request users will ask most directly and the one closest to personalized advice. Speakers add disclaimers inline ('a scopo didattico') while describing trades; this does not change the nature of the output. Should not be exposed before a policy decision.",
+      "created_in": 1,
+      "last_modified_in": 2
+    },
+    {
+      "id": "REQ-0019",
+      "status": "active",
+      "canonical_formulation": "Compare statements made in a given live about an instrument with its subsequent market behaviour.",
+      "example_phrasings_it": [
+        "Il livello di 130 su Booking indicato da Gei è stato raggiunto?",
+        "Aveva ragione Michettoni a dire che il mercato non cede?"
+      ],
+      "scope": "single_live",
+      "intent": "comparison",
+      "focus": [
+        "instrument",
+        "speaker"
+      ],
+      "parameters": [
+        {
+          "name": "live_id",
+          "type": "string",
+          "required": true,
+          "description": "Identifier of the live."
+        },
+        {
+          "name": "instrument",
+          "type": "string",
+          "required": true,
+          "description": "Instrument name or ticker."
+        },
+        {
+          "name": "speaker",
+          "type": "string",
+          "required": false,
+          "description": "Speaker identifier; restricts results to that speaker."
+        },
+        {
+          "name": "horizon",
+          "type": "date_range",
+          "required": false,
+          "description": "Window after the live over which to evaluate."
+        }
+      ],
+      "mcp": {
+        "primitive": "tool",
+        "tool_name": "compare_calls_with_prices",
+        "justification": "Joins extracted statements with external price history at call time."
+      },
+      "data_requirements": {
+        "transcript_fields": [
+          "segments[].segment_id",
+          "segments[].start_s",
+          "segments[].end_s",
+          "segments[].start_quality",
+          "segments[].speaker.speaker_id",
+          "segments[].text",
+          "segments[].speaker.confidence",
+          "segments[].speaker.needs_audio_review",
+          "segments[].mixed_speakers",
+          "live.date"
+        ],
+        "external": [
+          "derived: level table",
+          "derived: stance table (speaker, subject, direction, horizon, conditions, segment)",
+          "external: market price history"
+        ]
+      },
+      "evidence": [
+        {
+          "live_id": "MB20261028",
+          "segments": [
+            {
+              "start_s": 2990,
+              "end_s": 3169
+            },
+            {
+              "start_s": 4444,
+              "end_s": 4728
+            },
+            {
+              "start_s": 4882,
+              "end_s": 5162
+            }
+          ],
+          "note": "Testable claims: 'il mercato non cede', Booking 130, AmEx 290, Nasdaq/S&P expected moves."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 543,
+              "end_s": 619
+            }
+          ],
+          "note": "Host checks an earlier call himself: Google 'siamo su un supporto... è venuto verso il basso'."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 1425,
+              "end_s": 1497
+            }
+          ],
+          "note": "Serafini on his earlier BTP put: 'non mi aspettavo altre quattro figure a ribasso'."
+        }
+      ],
+      "confidence": "grounded",
+      "advice_risk": true,
+      "notes": "Aggregated over a speaker this becomes a track record, with performance-claim implications. Speakers sometimes verify their own earlier calls on air, which gives a price-free variant grounded in transcripts alone.",
+      "created_in": 1,
+      "last_modified_in": 2
+    },
+    {
+      "id": "REQ-0020",
+      "status": "active",
+      "canonical_formulation": "Explain a technical term as used in a given live, including how the speaker explained it if they did.",
+      "example_phrasings_it": [
+        "Cosa vuol dire backwardation, di cui parlava Biocchi?",
+        "Cos'è uno straddle?",
+        "Che cos'è lo 0DTE?"
+      ],
+      "scope": "single_live",
+      "intent": "lookup",
+      "focus": [
+        "topic"
+      ],
+      "parameters": [
+        {
+          "name": "term",
+          "type": "string",
+          "required": true,
+          "description": "Term to explain."
+        },
+        {
+          "name": "live_id",
+          "type": "string",
+          "required": false,
+          "description": "Live providing the context of use."
+        }
+      ],
+      "mcp": {
+        "primitive": "tool",
+        "tool_name": "explain_term",
+        "justification": "Combines a static glossary definition with the segments where the term occurs, which requires a call-time join."
+      },
+      "data_requirements": {
+        "transcript_fields": [
+          "segments[].segment_id",
+          "segments[].start_s",
+          "segments[].end_s",
+          "segments[].start_quality",
+          "segments[].speaker.speaker_id",
+          "segments[].text"
+        ],
+        "external": [
+          "external: financial glossary curated by the platform"
+        ]
+      },
+      "evidence": [
+        {
+          "live_id": "MB20261028",
+          "segments": [
+            {
+              "start_s": 0,
+              "end_s": 640
+            },
+            {
+              "start_s": 3605,
+              "end_s": 3773
+            },
+            {
+              "start_s": 4882,
+              "end_s": 5110
+            },
+            {
+              "start_s": 5366,
+              "end_s": 5625
+            }
+          ],
+          "note": "Speakers explain backwardation, opportunity cost, straddle and correlation in passing."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 476,
+              "end_s": 509
+            },
+            {
+              "start_s": 1271,
+              "end_s": 1387
+            },
+            {
+              "start_s": 2733,
+              "end_s": 2774
+            },
+            {
+              "start_s": 2926,
+              "end_s": 3102
+            },
+            {
+              "start_s": 5051,
+              "end_s": 5081
+            },
+            {
+              "start_s": 5169,
+              "end_s": 5210
+            }
+          ],
+          "note": "Speakers explain PCE, vertical spread and covered call, buy/sell on news, high-frequency trading, cyclicals vs defensives, wedge, cost report, ISIN."
+        }
+      ],
+      "confidence": "grounded",
+      "advice_risk": false,
+      "notes": "The definition part does not depend on any live; scope is single_live only because the schema has no live-independent value.",
+      "created_in": 1,
+      "last_modified_in": 2
+    },
+    {
+      "id": "REQ-0021",
+      "status": "active",
+      "canonical_formulation": "List available lives with date, title, guests and chapters, most recent first.",
+      "example_phrasings_it": [
+        "Quali live sono disponibili?",
+        "Qual è l'ultimo Market Briefing e chi c'era?"
+      ],
+      "scope": "cross_live",
+      "intent": "lookup",
+      "focus": [
+        "live"
+      ],
+      "parameters": [],
+      "mcp": {
+        "primitive": "resource",
+        "uri": "easygoing://lives",
+        "justification": "A fixed index of lives is static reference data with no parameters."
+      },
+      "data_requirements": {
+        "transcript_fields": [
+          "live.live_id",
+          "live.date",
+          "live.title",
+          "live.programme_id",
+          "live.video_url",
+          "chapters[].speaker_ids",
+          "chapters[].rubric_id",
+          "coverage.truncated"
+        ],
+        "external": [
+          "derived: live index built from canonical live blocks",
+          "registry: programmes",
+          "registry: speakers"
+        ]
+      },
+      "evidence": [
+        {
+          "live_id": "MB20261028",
+          "segments": [
+            {
+              "start_s": 5915,
+              "end_s": 5941
+            }
+          ],
+          "note": "Programme identity stated only in the closing words."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 0,
+              "end_s": 36
+            }
+          ],
+          "note": "Host states the episode title at the opening; the source also carries date and title fields."
+        }
+      ],
+      "confidence": "grounded",
+      "advice_risk": false,
+      "notes": "Now buildable from the canonical live blocks; title is null where the source has none (MB20261028).",
+      "created_in": 1,
+      "last_modified_in": 2
+    },
+    {
+      "id": "REQ-0022",
+      "status": "active",
+      "canonical_formulation": "List the trades or positions speakers state they have opened, closed or plan in a given live, with instrument, structure (including option strikes and expiry), entry or exit levels and timestamp.",
+      "example_phrasings_it": [
+        "Che operazioni ha fatto Serafini su Alibaba?",
+        "Cartisano è ancora dentro Campari?",
+        "Quali posizioni hanno dichiarato gli ospiti oggi?"
+      ],
+      "scope": "single_live",
+      "intent": "lookup",
+      "focus": [
+        "speaker",
+        "instrument"
+      ],
+      "parameters": [
+        {
+          "name": "live_id",
+          "type": "string",
+          "required": true,
+          "description": "Identifier of the live."
+        },
+        {
+          "name": "speaker",
+          "type": "string",
+          "required": false,
+          "description": "Speaker identifier; restricts results to that speaker."
+        },
+        {
+          "name": "instrument",
+          "type": "string",
+          "required": false,
+          "description": "Instrument name or ticker."
+        }
+      ],
+      "mcp": {
+        "primitive": "tool",
+        "tool_name": "get_disclosed_positions",
+        "justification": "Filters a derived table of stated trades by speaker and instrument at call time."
+      },
+      "data_requirements": {
+        "transcript_fields": [
+          "segments[].segment_id",
+          "segments[].start_s",
+          "segments[].end_s",
+          "segments[].start_quality",
+          "segments[].speaker.speaker_id",
+          "segments[].text",
+          "segments[].speaker.confidence",
+          "segments[].speaker.needs_audio_review",
+          "segments[].mixed_speakers"
+        ],
+        "external": [
+          "derived: disclosed position table (speaker, instrument, structure, side, strikes, expiry, premium, entry or exit level, status, segment)",
+          "registry: instruments"
+        ]
+      },
+      "evidence": [
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 1202,
+              "end_s": 1497
+            }
+          ],
+          "note": "Serafini: puts sold on Oracle at 110, Alibaba put vertical 110/105 to 20 Nov with premium and max loss, earlier BTP put naked, planned covered call."
+        },
+        {
+          "live_id": "MB20261029",
+          "segments": [
+            {
+              "start_s": 3820,
+              "end_s": 3893
+            }
+          ],
+          "note": "Cartisano: exited Campari just above 6.60 after entering just above 6."
+        }
+      ],
+      "confidence": "grounded",
+      "advice_risk": true,
+      "notes": "Distinct from REQ-0018: it returns executable structures stated as facts about the speaker's own book, which is closer to copy-trading than an opinion. Also an input to conflict-of-interest disclosure next to the same speaker's views (REQ-0007, REQ-0018). Not observed in MB20261028 (keyword check). Whether a position is still open cannot be inferred across lives unless restated.",
+      "created_in": 2,
+      "last_modified_in": 2
+    }
+  ]
+}

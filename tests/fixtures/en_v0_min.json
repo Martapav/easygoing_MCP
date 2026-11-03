@@ -1,0 +1,49 @@
+{
+  "metadata": {
+    "source": "Test transcription for fixtures, 28 Oct 2026",
+    "video": "https://example.test/live/fixture",
+    "transcription_source_duration": "1:05:00 (recording)",
+    "on_air_start_original": "00:00:10",
+    "off_air_start_original": "01:05:00",
+    "recording_prefix_removed": "00:00:10",
+    "broadcast_content_until_youtube_approx": "1:00:30",
+    "timecode_precision": "fixture",
+    "disclaimer": "Fixture disclaimer.",
+    "chapters": [
+      {"youtube": "00:00", "label": "Ada Lovelace — Fed, rates"},
+      {"youtube": "10:40", "label": "Grafico del giorno — Snam"},
+      {"youtube": "1:00:00", "label": "Spazio alle grida"}
+    ],
+    "security": "Fixture off-air note.",
+    "search_chunks_count": 0,
+    "search_chunks_note": "none in the fixture"
+  },
+  "securities_index": [
+    {
+      "name": "Stellantis",
+      "ticker": "STLAM",
+      "first_mention": "00:00",
+      "speakers": ["Ada Lovelace"],
+      "segments": ["MBFIX-001"]
+    }
+  ],
+  "segments": [
+    {"id": "MBFIX-001", "timestamp_youtube": "00:00", "timestamp_original": "00:10",
+     "timecode_kind": "raw_asr_chunk_start", "speaker": "Ada Lovelace",
+     "text": "Stellantis apre bene.", "confidence": "contextual",
+     "source_line": 1, "speaker_correction": null},
+    {"id": "MBFIX-002", "timestamp_youtube": "10:40", "timestamp_original": "10:50",
+     "timecode_kind": "official_chapter", "speaker": "Ada Lovelace",
+     "text": "Vediamo il grafico.", "confidence": "review_audio",
+     "source_line": 2, "speaker_correction": "Inferred from the schedule."},
+    {"id": "MBFIX-003", "timestamp_youtube": "10:40", "timestamp_original": "10:50",
+     "timecode_kind": "raw_asr_chunk_start", "speaker": "Grace Hopper",
+     "text": "Condivido l'analisi.", "confidence": "contextual",
+     "source_line": 3, "speaker_correction": null},
+    {"id": "MBFIX-004", "timestamp_youtube": "1:00:00", "timestamp_original": "1:00:10",
+     "timecode_kind": "official_chapter", "speaker": "Grace Hopper",
+     "text": "Spazio alle grida.", "confidence": "contextual",
+     "source_line": 4, "speaker_correction": null}
+  ],
+  "search_chunks": []
+}
