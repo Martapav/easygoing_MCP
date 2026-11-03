@@ -8,6 +8,10 @@ surface (the SDK's in-memory client), so it checks what a host actually sees.
 are kept apart on purpose: if the data ever disagrees with a catalog note, the
 failure names the discrepancy instead of the section 9 assertion being
 weakened to fit (section 9: "Do not weaken the assertion silently").
+
+Every test runs twice, once per canonical source: `json` (data/canonical, the
+JSON adapters) and `txt` (data/canonical_txt, the standard .txt route). The
+txt run is skipped when data/canonical_txt has not been built.
 """
 
 from __future__ import annotations
@@ -31,6 +35,18 @@ pytestmark = pytest.mark.skipif(
     reason="canonical files not built; run scripts/ingest.py",
 )
 
+# Which canonical source the module-level helpers serve; set per test below.
+_SOURCE = {"value": "json"}
+
+
+@pytest.fixture(autouse=True, params=["json", "txt"])
+def canonical_source(request):
+    if request.param == "txt" and not (REAL_DATA / "canonical_txt" / "MB20261028.canonical.json").exists():
+        pytest.skip("txt-route canonical files not built; run scripts/ingest.py --route txt")
+    _SOURCE["value"] = request.param
+    yield request.param
+    _SOURCE["value"] = "json"
+
 ADVICE_RISK_TOOLS = {"get_subject_discussion", "list_rubric_occurrences"}
 ADVICE_RISK_PROMPTS = {"summarize_live_portion", "compare_views"}
 ADVICE_RISK_TEMPLATES = {"easygoing://lives/{live_id}/summary"}
@@ -39,7 +55,9 @@ ADVICE_RISK_TEMPLATES = {"easygoing://lives/{live_id}/summary"}
 # --- helpers ------------------------------------------------------------------
 
 def server(*, advice_risk: bool = True):
-    base = load_settings({"EASYGOING_DATA_DIR": str(REAL_DATA)})
+    base = load_settings(
+        {"EASYGOING_DATA_DIR": str(REAL_DATA), "EASYGOING_CANONICAL_SOURCE": _SOURCE["value"]}
+    )
     return create_server(dataclasses.replace(base, enable_advice_risk=advice_risk))
 
 

@@ -14,7 +14,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-SourceFormat = Literal["mb_mymeeting_en_v0", "mb_mymeeting_it_v1"]
+SourceFormat = Literal["mb_mymeeting_en_v0", "mb_mymeeting_it_v1", "transcript_txt_v1"]
 
 StartQuality = Literal[
     "asr_chunk_start",            # raw ASR chunk boundary (en_v0)
@@ -27,7 +27,10 @@ MentionIndexScope = Literal["equities_only", "multi_asset"]
 
 TimestampsKind = Literal["asr_chunk_start", "estimated_interpolated"]
 
-MentionOrigin = Literal["source_index"]
+MentionOrigin = Literal[
+    "source_index",      # the source index lists the segment explicitly (JSON sources)
+    "index_text_match",  # the source index names the instrument; segments found by text match (.txt)
+]
 
 AnomalyKind = Literal[
     "zero_duration",               # end_s == start_s, inherent to the timecode model
@@ -135,7 +138,11 @@ class Segment(_Canonical):
 
 
 class Mention(_Canonical):
-    """One instrument occurring in one segment, as asserted by the source index."""
+    """One instrument occurring in one segment.
+
+    `origin` says how the pairing is known: listed by the source index, or found
+    by matching an index entry's names and tickers in the segment text.
+    """
 
     instrument_id: str
     segment_id: str

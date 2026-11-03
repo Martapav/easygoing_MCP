@@ -8,3 +8,4 @@ uv.lock.bak
 # Build output of scripts/ingest.py — never hand-edited, always reproducible.
 # Tracked deliberately? No: regenerate with `uv run python scripts/ingest.py`.
 data/canonical/
+data/canonical_txt/

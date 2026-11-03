@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 """Integrity report on canonical files and registries (section 4.5).
 
-    uv run python scripts/validate_data.py [--data-dir DIR] [--compare-dir DIR]
+    uv run python scripts/validate_data.py [--data-dir DIR] [--canonical-source json|txt] [--compare-dir DIR]
+
+`--canonical-source txt` (or EASYGOING_CANONICAL_SOURCE=txt) validates the txt
+route's output in data/canonical_txt against the same expected counts.
 
 Checks referential integrity, ordering, and the counts the specification and
 the request catalog both assert. Any count mismatch fails the run: the counts
@@ -185,10 +188,22 @@ def cross_check_catalog(canonicals: list[CanonicalLive], catalog_path: Path, fin
             findings.note(f"{canonical.live.live_id}: not recorded in the catalog")
             continue
 
+        # The catalog records the JSON source each live was first built from. A live
+        # built by the txt route comes from a different file by construction, so
+        # those two fields are noted, not failed; everything else is still checked.
+        from_txt = canonical.live.source_format == "transcript_txt_v1"
+        if from_txt:
+            findings.note(
+                f"{canonical.live.live_id}: built by the txt route from {canonical.live.source_file}; "
+                f"the catalog's source_format/source_file ({entry.get('source_format')}, "
+                f"{entry.get('source_file')}) describe the JSON route and are not compared"
+            )
         for field_name, ours in (
             ("date", canonical.live.date),
-            ("source_format", canonical.live.source_format),
-            ("source_file", canonical.live.source_file),
+            *(() if from_txt else (
+                ("source_format", canonical.live.source_format),
+                ("source_file", canonical.live.source_file),
+            )),
             ("title", canonical.live.title),
             ("duration_seconds", canonical.live.duration_seconds),
         ):
@@ -248,10 +263,16 @@ def main(argv: list[str] | None = None) -> int:
         "--compare-dir", type=Path, default=None,
         help="directory of canonical files produced elsewhere, to diff against",
     )
+    parser.add_argument(
+        "--canonical-source", choices=("json", "txt"), default=None,
+        help="which route's canonical files to validate (default: EASYGOING_CANONICAL_SOURCE, else json)",
+    )
     args = parser.parse_args(argv)
 
     import os
     env = {} if args.data_dir is None else {"EASYGOING_DATA_DIR": str(args.data_dir)}
+    if args.canonical_source is not None:
+        env["EASYGOING_CANONICAL_SOURCE"] = args.canonical_source
     settings = load_settings({**dict(os.environ), **env})
 
     paths = sorted(settings.canonical_dir.glob("*.canonical.json"))
@@ -289,7 +310,7 @@ def main(argv: list[str] | None = None) -> int:
 
     width = max(len(label) for label, _, _ in findings.checks) + 2
     print("=" * 78)
-    print("VALIDATION REPORT")
+    print(f"VALIDATION REPORT — {settings.canonical_dir}")
     print("=" * 78)
     for label, passed, detail in findings.checks:
         mark = "PASS" if passed else "FAIL"

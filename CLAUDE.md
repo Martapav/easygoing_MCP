@@ -22,13 +22,18 @@ easygoing-mcp/
     source/                            # raw transcripts as delivered. READ-ONLY, never edit.
       Market_Briefing_2026-10-28_MCP_TEST.json
       Market_Briefing_2026-10-29_MCP_TEST.json
+      Market_Briefing_2026-10-2{8,9}_TRASCRIZIONE_CORRETTA.txt   # standard .txt route input
     canonical/<live_id>.canonical.json # BUILD OUTPUT of scripts/ingest.py. Never hand-edit.
+    canonical_txt/<live_id>.canonical.json  # BUILD OUTPUT of scripts/ingest.py --route txt
     registries/                        # seeded by ingest, then curated by humans (see 4.4)
       speakers.json  rubrics.json  instruments.json  programmes.json
     derived/summaries/<live_id>.md     # optional, produced outside this repo
+  docs/
+    transcript_txt_format.md   # the .txt input spec (also the instructions for transcript authors)
   scripts/
-    ingest.py          # source -> canonical + registry seeding
-    validate_data.py   # integrity report on canonical + registries
+    ingest.py          # source -> canonical + registry seeding (--route json|txt)
+    validate_data.py   # integrity report on canonical + registries (--canonical-source json|txt)
+    diff_canonical.py  # field-level diff, data/canonical vs data/canonical_txt
   src/easygoing_mcp/
     server.py        # FastMCP wiring only: decorators, no business logic
     config.py        # paths, feature flags, limits (env vars with defaults)
@@ -36,9 +41,11 @@ easygoing-mcp/
       detect.py              # source format detection
       mb_mymeeting_en_v0.py  # adapter for the 2026-10-28 format
       mb_mymeeting_it_v1.py  # adapter for the 2026-10-29 format
+      txt_parse.py  txt_metadata.py  transcript_txt_v1.py   # the standard .txt route (4.7)
       timecodes.py  slugs.py
     models/
       source_en_v0.py  source_it_v1.py   # Pydantic models of the RAW formats
+      source_txt_v1.py                   # Pydantic models of a PARSED .txt
       canonical.py                       # Pydantic models of canonical files
       registries.py
       outputs.py                         # tool/resource OUTPUT models
@@ -201,6 +208,40 @@ If canonical files produced elsewhere (e.g. in the catalog project) are provided
 - MB20261029 timestamps are interpolated estimates; it has no video URL (no deep links) and is truncated mid-sentence.
 - Mention scope differs (equities only vs multi-asset). Mention counts are NOT comparable across these lives.
 - Spoken numbers are ASR-garbled and unverified (both sources say so).
+
+### 4.7 Standard .txt route `transcript_txt_v1` (added 2026-11-03)
+
+A second ingest route, alongside the JSON adapters, which stay as they are. Input is a plain
+`.txt` transcript in `data/source/`. The grammar is specified in `docs/transcript_txt_format.md`,
+which is the contract and also the instructions for whoever writes future transcripts. Output
+uses the same canonical schema and goes to `data/canonical_txt/`.
+`uv run python scripts/ingest.py --route txt [--dry-run]`.
+
+- **Parser** (`ingest/txt_parse.py`): one grammar that accepts both observed variants: bare
+  `[mm:ss]` or labelled `[REC … | YT~ …]` clocks, column or pipe chapter lists, and the
+  `prima occorrenza` or `N segmenti` index forms. Any line that matches no rule fails with
+  `file:line`. `detect.py:detect_source` claims a `.txt` only if it has a title line and a
+  segment line.
+- **Metadata** (`ingest/txt_metadata.py`): resolved from the `---` block, then from line forms
+  (`Video:`, `OSPITI…:`, a `~` on the YT clock), then — **temporarily** — from the companion
+  JSON source with the same programme and date, run through its existing adapter. Every
+  borrowed field is listed in `live.source_meta.metadata_fallback` and in the ingest report.
+  The user decided this on 2026-11-03: a colleague will produce .txt files with a complete
+  metadata block. A required field with no source fails.
+- **Adapter** (`ingest/transcript_txt_v1.py`):
+  - live id = programme initials + date; segment ids `<live_id>-001…` in file order;
+  - `==== SECTION ====` headers decide chapter assignment when present (n-th header of a name →
+    n-th chapter of that name), with conflicts recorded; otherwise assignment is by time. The
+    switch is `EASYGOING_CHAPTER_ASSIGNMENT_TXT_V1`;
+  - a bracketed flag before the speaker's colon sets `needs_audio_review`; `confidence` is the
+    flag text, or `unflagged`;
+  - `NOTE…` bullets become `source_limitation` anomalies.
+- **Mentions**: the .txt index lists no segments. Each entry's name, each part of a spaced
+  `A / B` name, curated registry aliases, and tickers (case-sensitive, whole token) are matched
+  on token boundaries. Matches get the new `MentionOrigin` `index_text_match`. The index's stated
+  first occurrence, count and speakers are cross-checked and flagged, never corrected.
+- **Server switch**: `EASYGOING_CANONICAL_SOURCE=json|txt` (default `json`) picks
+  `data/canonical` or `data/canonical_txt`. The new `SourceFormat` is `transcript_txt_v1`.
 
 ## 5. Output contract (applies to every tool and resource)
 
@@ -413,6 +454,23 @@ Reason: each depends on a derived extraction table or external data that does no
   zero-length, because `content_end_s` is its own start, but that is the unknown broadcast end
   and is reported through `coverage.truncated` — counting it would give 32 where the
   specification and the catalog both say 31.
+
+- **Standard .txt route (2026-11-03): built, awaiting review.** See section 4.7. On the two real
+  lives it reproduces every section 4.5 count: segments 137/241, zero-duration 25/31, audio
+  review 72/52, conflicts 0/19. Segment text, times, speakers, review flags and chapter
+  assignment are identical to the JSON route. Coverage is identical too, but only because it is
+  borrowed from the companion JSON. `validate_data.py --canonical-source txt` passes 38/38; the
+  catalog's source_format/source_file are noted, not compared. The acceptance suite runs on both
+  sources and passes on both. 403 tests pass.
+  Known differences (`scripts/diff_canonical.py`):
+  - mentions recall 85% (45/53) and 92% (102/111), precision 100%. The misses are spoken short
+    forms ("Samsung", "Micron", "Dell", "Booking", "JPMorgan", "Brent"); curating registry
+    aliases would close them;
+  - 7 MB20261028 segments lose `chapter_official` start quality (the .txt has no such mark);
+  - MB20261029 `label_raw` is the full chapter line;
+  - MB20261029 has no `source_limitation` anomalies, because its .txt has prose, not a `NOTE`
+    block; MB20261028 gains 7 from its `NOTE DI QUALITÀ` bullets;
+  - `confidence` vocabulary and `source` keys differ.
 
 | Catalog | Primitive | Status |
 |---|---|---|

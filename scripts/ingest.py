@@ -1,7 +1,13 @@
 #!/usr/bin/env python
 """Build canonical files from source transcripts and seed the registries.
 
-    uv run python scripts/ingest.py [--data-dir DIR] [--dry-run]
+    uv run python scripts/ingest.py [--data-dir DIR] [--route json|txt] [--dry-run]
+
+Two routes produce the same canonical schema:
+- `json` (default): data/source/*.json through the per-format JSON adapters,
+  written to data/canonical/.
+- `txt`: data/source/*.txt in the standard transcript format
+  (docs/transcript_txt_format.md), written to data/canonical_txt/.
 
 Source files are read-only inputs; canonical files are build output and are
 never hand-edited. Registries are seeded here and curated by hand afterwards,
@@ -24,12 +30,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from easygoing_mcp.config import Settings, load_settings  # noqa: E402
 from easygoing_mcp.ingest import mb_mymeeting_en_v0 as en_v0  # noqa: E402
 from easygoing_mcp.ingest import mb_mymeeting_it_v1 as it_v1  # noqa: E402
-from easygoing_mcp.ingest.detect import detect_format  # noqa: E402
+from easygoing_mcp.ingest.common import split_tickers  # noqa: E402,F401  (re-exported for tests)
+from easygoing_mcp.ingest.detect import detect_format, detect_source  # noqa: E402
+from easygoing_mcp.ingest import transcript_txt_v1 as txt_v1  # noqa: E402
+from easygoing_mcp.ingest.txt_metadata import resolve_metadata  # noqa: E402
+from easygoing_mcp.ingest.txt_parse import parse_txt  # noqa: E402
 from easygoing_mcp.ingest.slugs import normalize, slugify  # noqa: E402
 from easygoing_mcp.ingest.timecodes import format_timecode, parse_timecode  # noqa: E402
 from easygoing_mcp.models.canonical import CanonicalLive  # noqa: E402
 from easygoing_mcp.models.source_en_v0 import EnV0Document  # noqa: E402
 from easygoing_mcp.models.source_it_v1 import ItV1Document  # noqa: E402
+from easygoing_mcp.models.source_txt_v1 import TxtDocument  # noqa: E402
 
 
 @dataclass
@@ -58,18 +69,6 @@ class Report:
 
     def warn(self, message: str) -> None:
         self.warnings.append(message)
-
-
-def split_tickers(raw: str | None) -> list[str]:
-    """`GOOGL / GOOG` and `GOOGL/GOOG` both become `[GOOGL, GOOG]`.
-
-    Splits on `/` only. An exchange suffix such as `000660 (KRX)` is preserved
-    verbatim, because dropping it would invent a bare ticker the source never
-    stated (section 4.4, "record each ticker as given").
-    """
-    if not raw:
-        return []
-    return [part.strip() for part in raw.split("/") if part.strip()]
 
 
 # --------------------------------------------------------------------------
@@ -164,6 +163,24 @@ def seed_it_v1(document: ItV1Document, canonical: CanonicalLive) -> Seed:
         seed.instruments[slugify(instrument.nome)] = (instrument.nome, instrument.ticker)
 
     seed.programmes[canonical.live.programme_id] = document.programma
+    return seed
+
+
+def seed_txt_v1(document: TxtDocument, canonical: CanonicalLive, guests: list[str]) -> Seed:
+    seed = Seed()
+    for segment in document.segments:
+        seed.speakers[slugify(segment.speaker)] = segment.speaker
+    for name in guests:
+        seed.speakers.setdefault(slugify(name), name)
+
+    for raw, chapter in zip(document.chapters, canonical.chapters):
+        if chapter.rubric_id is not None:
+            seed.rubrics[chapter.rubric_id] = raw.name
+
+    for entry in document.index:
+        seed.instruments[slugify(entry.name)] = (entry.name, entry.tickers_raw)
+
+    seed.programmes[canonical.live.programme_id] = txt_v1.programme_name(document.source_file)
     return seed
 
 
@@ -294,6 +311,50 @@ def _report_cross_check(report: Report, live_id: str, warnings_before: int, inde
         )
 
 
+def _registry_aliases(settings: Settings) -> dict[str, list[str]]:
+    """Curated instrument aliases, used by the txt route's mention matching."""
+    registry = _load_registry(settings.registries_dir / "instruments.json", "instrument_id")
+    return {iid: list(entry.get("aliases") or []) for iid, entry in registry.items()}
+
+
+def ingest_txt_file(path: Path, settings: Settings, report: Report) -> tuple[CanonicalLive, Seed]:
+    source_format = detect_source(path)
+    report.note(f"{path.name}: detected {source_format}")
+
+    document = parse_txt(path.read_text(encoding="utf-8"), path.name)
+    meta = resolve_metadata(document, settings.source_dir, settings)
+    result = txt_v1.adapt(document, meta, settings, _registry_aliases(settings))
+    canonical = result.canonical
+
+    for note in result.notes:
+        report.note(note)
+    for warning in result.warnings:
+        report.warn(warning)
+    return canonical, seed_txt_v1(document, canonical, meta.guests)
+
+
+def report_new_registry_ids(seeds: list[Seed], settings: Settings, report: Report) -> None:
+    """Name every id the txt route would add, so registry growth is visible.
+
+    The merge itself is additive and never overwrites; this is about noticing a
+    near-duplicate (a differently spelled name) before it lands.
+    """
+    directory = settings.registries_dir
+    kinds = (
+        ("speakers", "speaker_id", "speakers"),
+        ("rubrics", "rubric_id", "rubrics"),
+        ("instruments", "instrument_id", "instruments"),
+        ("programmes", "programme_id", "programmes"),
+    )
+    for file_stem, key, attribute in kinds:
+        existing = _load_registry(directory / f"{file_stem}.json", key)
+        new = sorted({i for seed in seeds for i in getattr(seed, attribute)} - existing.keys())
+        if new:
+            report.warn(f"txt route adds {len(new)} new {file_stem} ids not in the registry: {new}")
+        else:
+            report.note(f"txt route: every {file_stem} id already exists in the registry")
+
+
 def ingest_file(path: Path, settings: Settings, report: Report) -> tuple[CanonicalLive, Seed]:
     raw = json.loads(path.read_text(encoding="utf-8"))
     source_format = detect_format(raw)
@@ -330,13 +391,20 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-dir", type=Path, default=None)
     parser.add_argument("--dry-run", action="store_true", help="report without writing files")
+    parser.add_argument(
+        "--route", choices=("json", "txt"), default="json",
+        help="json: data/source/*.json -> data/canonical; txt: data/source/*.txt -> data/canonical_txt",
+    )
     args = parser.parse_args(argv)
 
     env = {} if args.data_dir is None else {"EASYGOING_DATA_DIR": str(args.data_dir)}
     settings = load_settings({**dict(__import__("os").environ), **env})
 
     report = Report()
-    sources = sorted(settings.source_dir.glob("*.json"))
+    pattern = "*.txt" if args.route == "txt" else "*.json"
+    target_dir = settings.canonical_txt_dir if args.route == "txt" else settings.canonical_json_dir
+    ingest = ingest_txt_file if args.route == "txt" else ingest_file
+    sources = sorted(settings.source_dir.glob(pattern))
     if not sources:
         print(f"no source files in {settings.source_dir}", file=sys.stderr)
         return 1
@@ -344,21 +412,29 @@ def main(argv: list[str] | None = None) -> int:
     canonicals: list[CanonicalLive] = []
     seeds: list[Seed] = []
     for path in sources:
-        canonical, seed = ingest_file(path, settings, report)
+        canonical, seed = ingest(path, settings, report)
         canonicals.append(canonical)
         seeds.append(seed)
 
+    duplicates = sorted(i for i, n in Counter(c.live.live_id for c in canonicals).items() if n > 1)
+    if duplicates:
+        print(f"several {pattern} sources produce the same live id: {duplicates}", file=sys.stderr)
+        return 1
+
+    if args.route == "txt":
+        report_new_registry_ids(seeds, settings, report)
+
     if not args.dry_run:
-        settings.canonical_dir.mkdir(parents=True, exist_ok=True)
+        target_dir.mkdir(parents=True, exist_ok=True)
         for canonical in canonicals:
-            target = settings.canonical_dir / f"{canonical.live.live_id}.canonical.json"
+            target = target_dir / f"{canonical.live.live_id}.canonical.json"
             _write(target, canonical.model_dump(mode="json"))
             report.note(f"wrote {target.relative_to(settings.data_dir.parent)}")
 
     merge_registries(seeds, settings, report, args.dry_run)
 
     print("=" * 78)
-    print("INGEST REPORT" + ("  (dry run — nothing written)" if args.dry_run else ""))
+    print(f"INGEST REPORT — route {args.route}" + ("  (dry run — nothing written)" if args.dry_run else ""))
     print("=" * 78)
     for canonical in canonicals:
         kinds = Counter(a.kind for a in canonical.anomalies)

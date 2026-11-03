@@ -20,6 +20,9 @@ INGEST_SCHEMA_VERSION = "1.0"
 
 ChapterAssignment = Literal["rubrica", "time"]
 
+# Which ingest route's canonical files the server reads (data/canonical vs data/canonical_txt).
+CanonicalSource = Literal["json", "txt"]
+
 
 def _as_bool(raw: str | None, default: bool) -> bool:
     if raw is None:
@@ -68,13 +71,31 @@ class Settings:
     # instead of by time. Flip to "time" to get time-based assignment back.
     chapter_assignment_it_v1: ChapterAssignment = "rubrica"
 
+    # transcript_txt_v1: when a .txt carries `==== SECTION ====` headers, they decide
+    # chapter assignment ("rubrica", the same role as it_v1's per-segment rubrica);
+    # "time" switches to time-based assignment. Files without headers always use time.
+    chapter_assignment_txt_v1: ChapterAssignment = "rubrica"
+
+    # Which ingest route the server serves: "json" (data/canonical, built from the
+    # JSON sources) or "txt" (data/canonical_txt, built from the .txt sources).
+    canonical_source: CanonicalSource = "json"
+
     @property
     def source_dir(self) -> Path:
         return self.data_dir / "source"
 
     @property
     def canonical_dir(self) -> Path:
+        """The canonical files the server reads, per `canonical_source`."""
+        return self.canonical_txt_dir if self.canonical_source == "txt" else self.canonical_json_dir
+
+    @property
+    def canonical_json_dir(self) -> Path:
         return self.data_dir / "canonical"
+
+    @property
+    def canonical_txt_dir(self) -> Path:
+        return self.data_dir / "canonical_txt"
 
     @property
     def registries_dir(self) -> Path:
@@ -99,6 +120,18 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
             f"EASYGOING_CHAPTER_ASSIGNMENT_IT_V1 must be 'rubrica' or 'time', got {assignment!r}"
         )
 
+    assignment_txt = env.get("EASYGOING_CHAPTER_ASSIGNMENT_TXT_V1", "rubrica").strip().lower()
+    if assignment_txt not in {"rubrica", "time"}:
+        raise ValueError(
+            f"EASYGOING_CHAPTER_ASSIGNMENT_TXT_V1 must be 'rubrica' or 'time', got {assignment_txt!r}"
+        )
+
+    canonical_source = env.get("EASYGOING_CANONICAL_SOURCE", "json").strip().lower()
+    if canonical_source not in {"json", "txt"}:
+        raise ValueError(
+            f"EASYGOING_CANONICAL_SOURCE must be 'json' or 'txt', got {canonical_source!r}"
+        )
+
     return Settings(
         data_dir=Path(env.get("EASYGOING_DATA_DIR", "./data")).expanduser().resolve(),
         enable_advice_risk=_as_bool(env.get("EASYGOING_ENABLE_ADVICE_RISK"), False),
@@ -109,4 +142,6 @@ def load_settings(env: Mapping[str, str] | None = None) -> Settings:
         context_radius=_as_int(env.get("EASYGOING_CONTEXT_RADIUS"), 2),
         max_discussion_segments=_as_int(env.get("EASYGOING_MAX_DISCUSSION_SEGMENTS"), 40),
         chapter_assignment_it_v1=assignment,  # type: ignore[arg-type]
+        chapter_assignment_txt_v1=assignment_txt,  # type: ignore[arg-type]
+        canonical_source=canonical_source,  # type: ignore[arg-type]
     )

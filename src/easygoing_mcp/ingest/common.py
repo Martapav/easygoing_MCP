@@ -71,3 +71,15 @@ def chapter_at_time(chapters: Sequence[Chapter], start_s: int) -> str | None:
     if position < 0:
         return None
     return chapters[position].chapter_id
+
+
+def split_tickers(raw: str | None) -> list[str]:
+    """`GOOGL / GOOG` and `GOOGL/GOOG` both become `[GOOGL, GOOG]`.
+
+    Splits on `/` only. An exchange suffix such as `000660 (KRX)` is preserved
+    verbatim, because dropping it would invent a bare ticker the source never
+    stated (section 4.4, "record each ticker as given").
+    """
+    if not raw:
+        return []
+    return [part.strip() for part in raw.split("/") if part.strip()]
